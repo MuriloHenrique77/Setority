@@ -1,3 +1,15 @@
+## Etapa 10C — Conta e autenticação (06/10/2026)
+
+AccountButton reutilizado nos headers das quatro áreas abre ContaScreen no stack raiz, somente em authenticatedReady. As quatro abas permanecem. Conta usa conta.email e estabelecimento.nome já presentes no SessionProvider; não consulta Firestore. Logout fica em Conta com confirmação; a saída de onboarding/erro de sessão permanece acessível. SessionProvider, seu protocolo de invalidação/cleanup e as Rules não foram alterados.
+
+Login/Cadastro mantêm as regras anteriores, agora com AppScreen, AppCard, AppInput, AppButton e feedback do Design System. RecuperarSenhaScreen valida e-mail obrigatório/formato/trim, mantém a caixa original (arquitetura não normaliza para lowercase), exibe loading/disabled e retorno ao Login. O serviço recuperarSenha existente centraliza sendPasswordResetEmail e setLanguageCode(auth, 'pt') do React Native Firebase 26.4.0. Bloqueios na UI e no serviço impedem pedidos simultâneos; finally libera retry após erro. O retorno de tela desmontada não publica feedback.
+
+Conta confirma o envio para o e-mail conhecido, sem nova digitação. Ambos os fluxos exibem a mesma mensagem genérica, inclusive auth/user-not-found: “Se existir uma conta com este e-mail, enviaremos instruções para redefinir sua senha.” Erros comuns reutilizam tradução de Auth; recuperação possui mensagem específica de conexão e mensagens seguras de indisponibilidade. Offline não produz sucesso. Password reset não cria sessão, não modifica Firestore e não armazena senha/token manualmente. Firebase Auth gerencia o reset pela página oficial hospedada; não há backend próprio, SDK Web nem formulário de troca direta de senha.
+
+Configuração remota consultada em modo somente leitura: Email/Password habilitado, proteção de enumeração habilitada, template padrão de password reset existente, envio DEFAULT e callback oficial do projeto. defaultLocale remoto permanece en; o app solicita pt por requisição. Não houve deploy/configuração externa na 10C. Recebimento em caixa postal e redefinição na página hospedada não são confirmados por testes com endereços example.test. Para conferir conteúdo entregue, usar caixa controlada e conferir Authentication → Templates → Password reset; se for desejado mudar também o idioma padrão remoto, selecionar português no Console. Essa personalização é opcional; nenhuma ação manual é exigida para habilitar o fluxo implementado.
+
+Referências: [setLanguageCode](https://reference.rnfirebase.io/_react-native-firebase/auth/setLanguageCode.html), [Firebase Android — password reset](https://firebase.google.com/docs/auth/android/manage-users#send_a_password_reset_email). Evidências/checks: [VALIDACAO_ETAPA_10C.md](VALIDACAO_ETAPA_10C.md).
+
 # Evolução posterior ao MVP — Etapa 10B
 
 O MVP e a Etapa 10A permanecem registrados abaixo como histórico de decisões. A política atual da 10B substitui RN-07/RF-11 de exclusão destrutiva de histórico por **inativação**. O levantamento original não foi reescrito.

@@ -7,8 +7,9 @@ import CriarEstabelecimentoScreen from '../screens/auth/CriarEstabelecimentoScre
 import LoadingScreen from '../screens/auth/LoadingScreen';
 import LogoutButton from '../components/LogoutButton';
 import { AuthFormLayout, FormButton } from '../components/AuthFormLayout';
+import ContaScreen from '../screens/conta/ContaScreen';
+import type { RootStackParamList } from './types';
 
-type RootStackParamList = { Loading: undefined; Auth: undefined; Onboarding: undefined; Stock: undefined; Error: undefined };
 const Stack = createStackNavigator<RootStackParamList>();
 
 function SessionErrorScreen() {
@@ -28,7 +29,10 @@ export default function RootNavigator() {
     {estado.status === 'loading' ? <Stack.Screen name="Loading" component={LoadingScreen} options={{ title: 'Controle de estoque' }} />
       : estado.status === 'unauthenticated' ? <Stack.Screen name="Auth" component={AuthNavigator} options={{ headerShown: false }} />
       : estado.status === 'authenticatedWithoutProfile' ? <Stack.Screen name="Onboarding" component={CriarEstabelecimentoScreen} options={{ title: 'Configurar estabelecimento', headerRight: () => <LogoutButton /> }} />
-      : estado.status === 'authenticatedReady' ? <Stack.Screen name="Stock" component={AuthenticatedNavigator} options={{ headerShown: false }} />
+      : estado.status === 'authenticatedReady' ? <>
+        <Stack.Screen name="Stock" component={AuthenticatedNavigator} options={{ headerShown: false }} />
+        <Stack.Screen name="Conta" component={ContaScreen} options={{ title: 'Conta' }} />
+      </>
       : <Stack.Screen name="Error" component={SessionErrorScreen} options={{ title: 'Sessão' }} />}
   </Stack.Navigator>;
 }

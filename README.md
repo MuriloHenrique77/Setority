@@ -41,7 +41,7 @@ Validações locais:
 ```powershell
 npx.cmd tsc --noEmit
 npx.cmd expo-doctor
-node --test tests/auth.test.cjs tests/recuperacao-senha.test.cjs tests/visao-estoque.test.cjs tests/setores.test.cjs tests/produtos.test.cjs tests/ciclo-produto.test.cjs tests/relatorios.test.cjs tests/listeners.test.cjs tests/navigation.test.cjs
+node --test tests/auth.test.cjs tests/recuperacao-senha.test.cjs tests/conta.test.cjs tests/visao-estoque.test.cjs tests/setores.test.cjs tests/produtos.test.cjs tests/ciclo-produto.test.cjs tests/relatorios.test.cjs tests/listeners.test.cjs tests/navigation.test.cjs
 npx.cmd --yes firebase-tools emulators:exec --project demo-estoque-local --only auth,firestore "node --test tests/firebase-rules.test.cjs"
 git diff --check
 ```
@@ -63,3 +63,7 @@ Não executar `npm audit fix` ou atualizar pacotes sem avaliação separada.
 O Login oferece recuperação de senha pelo Firebase Authentication nativo, com
 mensagem genérica de sucesso e solicitação de e-mail em português. Consulte
 [docs/VALIDACAO_RECUPERACAO_SENHA.md](docs/VALIDACAO_RECUPERACAO_SENHA.md).
+
+### Etapa 10C — conta e autenticação
+
+O ícone de perfil dos headers abre Conta com os dados já validados pela sessão, redefinição por e-mail e logout centralizado. Login e recuperação usam o Design System. O Firebase Auth nativo envia as instruções em português; conexão é necessária e a resposta não revela se o e-mail existe. Nenhuma senha ou token é armazenado manualmente. Veja [validação da 10C](docs/VALIDACAO_ETAPA_10C.md).

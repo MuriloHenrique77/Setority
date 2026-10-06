@@ -5,6 +5,7 @@ import type { Movimentacao, TipoMovimentacao } from '../types/movimentacao.types
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type DadosRota<T> = Omit<T, 'criadoEm' | 'atualizadoEm' | 'inativadoEm'>;
+export type RootStackParamList = { Loading: undefined; Auth: undefined; Onboarding: undefined; Stock: undefined; Conta: undefined; Error: undefined };
 
 export type StockStackParamList = {
   Setores: undefined;

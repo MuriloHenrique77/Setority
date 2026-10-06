@@ -1,6 +1,6 @@
 export function validarCredenciais(email: string, senha: string): string | null {
-  if (!email.trim()) return 'Informe seu e-mail.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Informe um e-mail válido.';
+  const erroEmail = validarEmailRecuperacao(email);
+  if (erroEmail) return erroEmail;
   if (!senha) return 'Informe sua senha.';
   return null;
 }
@@ -15,9 +15,9 @@ export const mensagemRecuperacaoEnviada = 'Se existir uma conta com este e-mail,
 
 export function mensagemErroRecuperacao(erro: unknown): string {
   const codigo = typeof erro === 'object' && erro !== null && 'code' in erro ? String(erro.code) : '';
-  if (codigo === 'auth/invalid-email') return 'Informe um e-mail válido.';
-  if (codigo === 'auth/network-request-failed') return 'Verifique sua conexão e tente novamente.';
-  if (codigo === 'auth/too-many-requests') return 'Muitas tentativas. Aguarde um pouco e tente novamente.';
+  if (codigo === 'auth/network-request-failed') return 'É necessária conexão para enviar as instruções de redefinição.';
+  if (codigo === 'auth/invalid-email' || codigo === 'auth/too-many-requests') return mensagemErroFirebase(erro);
+  if (codigo === 'auth/request-in-progress') return 'Aguarde o envio das instruções em andamento.';
   if (codigo === 'app/web-unavailable' || codigo === 'auth/internal-error' || codigo === 'auth/operation-not-allowed' || codigo === 'auth/app-not-authorized') {
     return 'A recuperação de senha está indisponível no momento. Tente novamente mais tarde.';
   }

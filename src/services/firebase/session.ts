@@ -38,17 +38,23 @@ export async function sair(): Promise<void> {
   await signOut(obterAuth());
 }
 
+let redefinicaoEmAndamento = false;
 export async function recuperarSenha(email: string): Promise<void> {
   const erro = validarEmailRecuperacao(email);
   if (erro) throw new Error(erro);
-  const auth = obterAuth();
-  await setLanguageCode(auth, 'pt');
-  try { await sendPasswordResetEmail(auth, email.trim()); }
+  if (redefinicaoEmAndamento) throw { code: 'auth/request-in-progress' };
+  redefinicaoEmAndamento = true;
+  try {
+    const auth = obterAuth();
+    await setLanguageCode(auth, 'pt');
+    await sendPasswordResetEmail(auth, email.trim());
+  }
   catch (e) {
     // Mantém a mesma resposta mesmo em projetos sem proteção de enumeração.
     if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'auth/user-not-found') return;
     throw e;
   }
+  finally { redefinicaoEmAndamento = false; }
 }
 
 export async function carregarPerfil(conta: ContaAutenticada) {

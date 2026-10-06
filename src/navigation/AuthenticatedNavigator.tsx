@@ -7,7 +7,7 @@ import StockNavigator from './StockNavigator';
 import HomeScreen from '../screens/home/HomeScreen';
 import MovimentacoesScreen from '../screens/movimentacoes/MovimentacoesScreen';
 import RelatoriosScreen from '../screens/relatorios/RelatoriosScreen';
-import LogoutButton from '../components/LogoutButton';
+import AccountButton from '../components/AccountButton';
 import { colors, fonts, spacing } from '../theme';
 import { appHeaderOptions } from '../theme/navigation';
 const Tab = createBottomTabNavigator<AuthenticatedTabParamList>();
@@ -16,7 +16,7 @@ const labels = { Inicio: 'Início', Estoque: 'Estoque', Movimentacoes: 'Moviment
 export default function AuthenticatedNavigator() {
   const insets = useSafeAreaInsets();
   return <Tab.Navigator initialRouteName="Inicio" backBehavior="history" screenOptions={({ route }) => ({
-    ...appHeaderOptions, headerRight: () => <LogoutButton />, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.tabInactive,
+    ...appHeaderOptions, headerRight: () => <AccountButton />, tabBarActiveTintColor: colors.primary, tabBarInactiveTintColor: colors.tabInactive,
     tabBarHideOnKeyboard: true, tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 11, lineHeight: 16 },
     tabBarLabel: ({ color }) => <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}
       style={{ fontFamily: fonts.medium, fontSize: 11, lineHeight: 16, color, textAlign: 'center', width: '100%' }}>{labels[route.name]}</Text>,

@@ -12,7 +12,7 @@ test('recuperação: email obrigatório, trim e formato básico sem espaços int
 test('recuperação: erros traduzidos sem código técnico ou detalhes da conta',()=>{
  const expected={
   'auth/invalid-email':'Informe um e-mail válido.',
-  'auth/network-request-failed':'Verifique sua conexão e tente novamente.',
+  'auth/network-request-failed':'É necessária conexão para enviar as instruções de redefinição.',
   'auth/too-many-requests':'Muitas tentativas. Aguarde um pouco e tente novamente.',
  };
  for(const [code,message]of Object.entries(expected))assert.equal(utils.mensagemErroRecuperacao({code}),message);
@@ -35,20 +35,44 @@ test('conta inexistente preserva sucesso genérico; demais erros são propagados
 test('tela bloqueia duplo submit, exibe loading, não atualiza após unmount e permite retry em erro',async()=>{
  let cursor=0,cleanup,pending,requests=0,back=0;const states=[],refs=[];
  const react={useState:v=>{const i=cursor++;if(!(i in states))states[i]=v;return[states[i],x=>states[i]=x];},useRef:v=>{const i=cursor++;return refs[i]??=( {current:v} );},useEffect:fn=>{if(!cleanup)cleanup=fn();}};
- const components={AuthFormLayout:'layout',FormButton:'button',authStyles:{}};
+ const components={};
  const screen=load('src/screens/auth/RecuperarSenhaScreen.tsx',{
   react:{...react,default:react},'react/jsx-runtime':{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})},
-  'react-native':{Text:'text',TextInput:'input',ActivityIndicator:'spinner'},'../../components/AuthFormLayout':components,
+  'react-native':{Text:'text',View:'view',Keyboard:{dismiss:()=>{}},StyleSheet:{create:s=>s}},
+  '../../components/ui/AppScreen':{AppScreen:'layout'},'../../components/ui/AppCard':{AppCard:'card'},
+  '../../components/ui/AppInput':{AppInput:'input'},'../../components/ui/AppButton':{AppButton:'button'},
+  '../../components/ui/SectionHeader':{SectionHeader:'header'},'../../components/ui/FeedbackProvider':{useFeedback:()=>()=>{}},
+  '../../theme':{colors:{},spacing:{},typography:{}},
   '../../utils/auth':utils,'../../services/firebase/session':{firebaseNativoDisponivel:true,recuperarSenha:()=>{requests++;return new Promise((resolve,reject)=>pending={resolve,reject});}},
  }).default;
  const render=()=>{cursor=0;return screen({navigation:{goBack:()=>back++}});};
  function nodes(tree){return tree&&typeof tree==='object'?[tree,...[tree.props?.children].flat(Infinity).flatMap(nodes)]:[];}
  let tree=render();nodes(tree).find(n=>n.type==='input').props.onChangeText('pessoa@exemplo.test');tree=render();
  const submit=nodes(tree).find(n=>n.props.label==='Enviar instruções').props.onPress;submit();submit();assert.equal(requests,1);
- tree=render();assert.equal(nodes(tree).find(n=>n.props.label==='Enviando...').props.disabled,true);assert.equal(nodes(tree).find(n=>n.type==='input').props.editable,false);assert.ok(nodes(tree).some(n=>n.type==='spinner'));
- pending.reject({code:'auth/network-request-failed'});await new Promise(r=>setImmediate(r));tree=render();assert.equal(tree.props.erro,'Verifique sua conexão e tente novamente.');
+ tree=render();assert.equal(nodes(tree).find(n=>n.props.label==='Enviando...').props.disabled,true);assert.equal(nodes(tree).find(n=>n.type==='input').props.editable,false);assert.equal(nodes(tree).find(n=>n.props.label==='Enviando...').props.loading,true);
+ pending.reject({code:'auth/network-request-failed'});await new Promise(r=>setImmediate(r));tree=render();assert.equal(nodes(tree).find(n=>n.type==='input').props.error,'É necessária conexão para enviar as instruções de redefinição.');
  nodes(tree).find(n=>n.props.label==='Enviar instruções').props.onPress();assert.equal(requests,2);pending.resolve();await new Promise(r=>setImmediate(r));tree=render();assert.ok(nodes(tree).some(n=>n.props.children===utils.mensagemRecuperacaoEnviada));assert.ok(!nodes(tree).some(n=>n.type==='input'));
  nodes(tree).find(n=>n.props.label==='Voltar ao Login').props.onPress();assert.equal(back,1);
  // Retorno de uma solicitação em tela desmontada não muda o estado.
  states[3]=false;tree=render();nodes(tree).find(n=>n.props.label==='Enviar instruções').props.onPress();cleanup();const before=[...states];pending.resolve();await new Promise(r=>setImmediate(r));assert.deepEqual(states,before);
+});
+
+test('serviço bloqueia solicitações simultâneas e libera tentativa após conclusão/erro', async()=>{
+ let release, sends=0; const s=load('src/services/firebase/session.ts',{
+ '@react-native-firebase/auth':{setLanguageCode:async()=>{},sendPasswordResetEmail:()=>{sends++;return new Promise(r=>release=r);}},
+ '@react-native-firebase/firestore':{},'./auth':{obterAuth:()=>({})},'./firestore':{},'./collections':{},'./converters/onboarding':{},'../../utils/auth':utils,
+ });
+ const first=s.recuperarSenha(' Pessoa@exemplo.test ');await new Promise(r=>setImmediate(r));
+ await assert.rejects(()=>s.recuperarSenha('outra@exemplo.test'),e=>e.code==='auth/request-in-progress');assert.equal(sends,1);
+ release();await first;const second=s.recuperarSenha('Pessoa@exemplo.test');await new Promise(r=>setImmediate(r));assert.equal(sends,2);release();await second;
+});
+test('erros comuns reutilizam tradução de Login/Cadastro; não expõe conta desativada',()=>{
+ for(const code of ['auth/invalid-email','auth/too-many-requests'])assert.equal(utils.mensagemErroRecuperacao({code}),utils.mensagemErroFirebase({code}));
+ assert.doesNotMatch(utils.mensagemErroRecuperacao({code:'auth/user-disabled'}),/desativada|user-disabled/);
+ assert.match(utils.mensagemErroRecuperacao({code:'auth/request-in-progress'}),/Aguarde/);
+});
+
+test('trim preserva caixa do email e falha do SDK libera bloqueio para nova tentativa',async()=>{
+ const s=service();await s.recuperarSenha('  Pessoa@Exemplo.test  ');assert.equal(s.calls[1][2],'Pessoa@Exemplo.test');
+ const broken=service({code:'auth/network-request-failed'});for(let i=0;i<2;i++)await assert.rejects(()=>broken.recuperarSenha('pessoa@exemplo.test'),e=>e.code==='auth/network-request-failed');assert.equal(broken.calls.filter(c=>c[0]==='enviar').length,2);
 });
