@@ -1,144 +1,92 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity } from 'react-native';
+import { dadosDeRota } from '../../navigation/dadosDeRota';
+import type { StockScreenProps } from '../../navigation/types';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { listarProdutosPorSetor } from '../../storage/produtosStorage';
-import { Produto } from '../../types/produto.types';
-import { Setor } from '../../types/setor.types';
+import { useProdutos } from '../../services/produtos/useProdutos';
+import { removerProduto } from '../../services/produtos/produtosService';
+import { mensagemErroProdutos, precisaReposicao } from '../../utils/produtos';
+import type { Produto } from '../../types/produto.types';
+import ConfirmModal from '../../components/ConfirmModal';
+import { FormButton, authStyles } from '../../components/AuthFormLayout';
 
-export default function ProdutosScreen() {
-  const navigation = useNavigation<any>();
-  const route = useRoute<any>();
-  const setor: Setor = route.params?.setor;
-
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-
-  function handleNovoProduto() {
-    navigation.navigate('ProdutoForm', { setor });
+export default function ProdutosScreen({ navigation, route }: StockScreenProps<'Produtos'>) {
+  const { setor } = route.params;
+  const { estado, contexto, tentarNovamente } = useProdutos(setor.id);
+  const valido = contexto?.estabelecimentoId === setor.estabelecimentoId;
+  const produtos = valido && estado.status === 'data' ? estado.produtos : [];
+  const [selecionado, setSelecionado] = useState<Produto | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  const [excluindo, setExcluindo] = useState(false);
+  const ocupado = useRef(false);
+  const ativo = useRef(true);
+  useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
+  async function excluir() {
+    if (!contexto || !selecionado || ocupado.current || !valido) return;
+    ocupado.current = true;
+    setExcluindo(true);
+    setErro(null);
+    try { await removerProduto(contexto, selecionado.id); }
+    catch (e) { if (ativo.current) setErro(mensagemErroProdutos(e)); }
+    finally {
+      ocupado.current = false;
+      if (ativo.current) { setSelecionado(null); setExcluindo(false); }
+    }
   }
-
-  async function carregarProdutos() {
-    const lista = await listarProdutosPorSetor(setor.id);
-    setProdutos(lista);
-  }
-
-  useFocusEffect(
-    useCallback(() => {
-      carregarProdutos();
-    }, [setor.id])
-  );
-
   function renderProduto({ item }: { item: Produto }) {
-    return (
-      <View
-        style={{
-          backgroundColor: '#FFF',
-          borderRadius: 14,
-          padding: 16,
-          marginBottom: 12,
-          borderWidth: 1,
-          borderColor: '#E5E5E5',
-        }}
-      >
-        <Text style={{ fontSize: 17, fontWeight: '700', color: '#111' }}>
-          {item.nome}
-        </Text>
-
-        <Text style={{ marginTop: 4, fontSize: 14, color: '#666' }}>
-          {item.descricao ? item.descricao : 'Sem descrição'}
-        </Text>
-
-        <Text style={{ marginTop: 8, fontSize: 14, color: '#1E88E5' }}>
-          Quantidade: {item.quantidade}
-        </Text>
-      </View>
-    );
-  }
-
-  function renderEmptyState() {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          paddingHorizontal: 24,
-        }}
-      >
-        <Ionicons name="cube-outline" size={64} color="#B0BEC5" />
-        <Text
-          style={{
-            marginTop: 16,
-            fontSize: 22,
-            fontWeight: '700',
-            color: '#222',
-            textAlign: 'center',
-          }}
-        >
-          Nenhum produto cadastrado
-        </Text>
-
-        <Text
-          style={{
-            marginTop: 8,
-            fontSize: 15,
-            color: '#666',
-            textAlign: 'center',
-            lineHeight: 22,
-          }}
-        >
-          Adicione produtos para este setor.
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F5' }}>
-      <View style={{ flex: 1, paddingHorizontal: 20, paddingTop: 12 }}>
-        <View style={{ marginBottom: 20 }}>
-          <Text style={{ fontSize: 30, fontWeight: '700', color: '#111' }}>
-            {setor.nome}
-          </Text>
-          <Text style={{ marginTop: 6, fontSize: 15, color: '#666' }}>
-            Produtos cadastrados neste setor
-          </Text>
-        </View>
-
-        <TouchableOpacity
-          style={{
-            backgroundColor: '#1E88E5',
-            borderRadius: 12,
-            paddingVertical: 14,
-            paddingHorizontal: 16,
-            marginBottom: 20,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 8,
-          }}
-          activeOpacity={0.8}
-          onPress={handleNovoProduto}
-        >
-          <Ionicons name="add-circle-outline" size={20} color="#FFF" />
-          <Text style={{ color: '#FFF', fontSize: 16, fontWeight: '600' }}>
-            Novo produto
-          </Text>
+    return <View style={styles.card}>
+      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Abrir produto ${item.nome}`}
+        onPress={() => navigation.navigate('ProdutoDetalhes', { setor, produtoId: item.id })}>
+        <Text style={styles.nome}>{item.nome}</Text>
+        <Text style={styles.editar}>Ver detalhes e movimentações</Text>
+      </TouchableOpacity>
+      <Text style={styles.descricao}>{item.descricao || 'Sem descrição'}</Text>
+      <Text style={styles.saldo}>Estoque atual: {item.estoqueAtual}</Text>
+      {item.estoqueMinimo !== undefined ? <Text style={styles.descricao}>Estoque mínimo: {item.estoqueMinimo}</Text> : null}
+      {item.estoqueAtual === 0 ? <Text style={styles.atencao}>Estoque zerado</Text> : null}
+      {precisaReposicao(item) ? <Text style={styles.atencao}>Necessita reposição</Text> : null}
+      <View style={styles.acoes}>
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Editar produto ${item.nome}`}
+          disabled={excluindo} style={styles.acao} onPress={() => navigation.navigate('ProdutoForm', { setor, produto: dadosDeRota(item) })}>
+          <Text style={styles.editar}>Editar</Text>
         </TouchableOpacity>
-
-        <FlatList
-          data={produtos}
-          keyExtractor={(item) => item.id}
-          renderItem={renderProduto}
-          contentContainerStyle={{
-            paddingBottom: 20,
-            flexGrow: produtos.length === 0 ? 1 : 0,
-          }}
-          ListEmptyComponent={renderEmptyState}
-          showsVerticalScrollIndicator={false}
-        />
+        <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Excluir produto ${item.nome}`}
+          disabled={excluindo} style={styles.acao} onPress={() => { setErro(null); setSelecionado(item); }}>
+          <Text style={styles.atencao}>Excluir</Text>
+        </TouchableOpacity>
       </View>
-    </SafeAreaView>
-  );
+    </View>;
+  }
+  const erroVisivel = !valido ? 'Este setor não pertence à sessão atual.' : erro ?? (estado.status === 'error' ? estado.mensagem : null);
+  return <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.area}>
+    <View style={styles.conteudo}>
+      <Text style={styles.titulo}>{setor.nome}</Text>
+      <Text style={authStyles.subtitle}>Produtos cadastrados neste setor</Text>
+      <FormButton label="Novo produto" disabled={!valido || excluindo} onPress={() => navigation.navigate('ProdutoForm', { setor })} />
+      {estado.status === 'loading' ? <Text>Carregando produtos...</Text> : null}
+      {excluindo ? <Text>Excluindo produto e movimentações...</Text> : null}
+      {erroVisivel ? <View><Text accessibilityRole="alert" style={authStyles.error}>{erroVisivel}</Text>
+        <FormButton label="Tentar novamente" onPress={() => { setErro(null); tentarNovamente(); }} /></View> : null}
+      <FlatList data={produtos} keyExtractor={p => p.id} renderItem={renderProduto}
+        contentContainerStyle={styles.lista} ListEmptyComponent={estado.status === 'data' && !erroVisivel
+          ? <Text style={styles.vazio}>Nenhum produto cadastrado. Adicione produtos para este setor.</Text> : null} />
+      <ConfirmModal visible={selecionado !== null} title="Excluir produto"
+        message="Ao excluir este produto, todas as movimentações vinculadas a ele também serão removidas. Deseja continuar?"
+        confirmText={excluindo ? 'Excluindo...' : 'Excluir'} onConfirm={() => { void excluir(); }}
+        onCancel={() => { if (!ocupado.current) setSelecionado(null); }} />
+    </View>
+  </SafeAreaView>;
 }
+
+const styles = StyleSheet.create({
+  area: { flex: 1, backgroundColor: '#F5F5F5' }, conteudo: { flex: 1, padding: 20 },
+  titulo: { fontSize: 28, fontWeight: '700', color: '#111', marginBottom: 8 },
+  card: { backgroundColor: '#FFF', borderRadius: 14, borderWidth: 1, borderColor: '#E5E5E5', padding: 16, marginBottom: 12 },
+  nome: { fontSize: 17, fontWeight: '700', color: '#111' }, descricao: { fontSize: 14, color: '#555', marginTop: 6 },
+  saldo: { fontSize: 16, fontWeight: '700', color: '#1565C0', marginTop: 8 },
+  atencao: { fontSize: 15, fontWeight: '600', color: '#A31818', marginTop: 6 },
+  acoes: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 8, gap: 12 },
+  acao: { minHeight: 48, minWidth: 80, justifyContent: 'center', alignItems: 'center' },
+  editar: { fontSize: 15, color: '#1565C0', fontWeight: '600' },
+  lista: { flexGrow: 1, paddingBottom: 20 }, vazio: { color: '#555', fontSize: 17, textAlign: 'center', marginTop: 24 },
+});

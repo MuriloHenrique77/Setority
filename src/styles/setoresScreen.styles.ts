@@ -107,8 +107,20 @@ export const styles = StyleSheet.create({
   },
 
   actionButton: {
+    minWidth: 48,
+    minHeight: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 10,
     borderRadius: 10,
+  },
+
+  retryButton: {
+    minHeight: 48,
+    justifyContent: 'center',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 12,
   },
 
   emptyContainer: {

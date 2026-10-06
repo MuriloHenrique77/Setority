@@ -9,6 +9,7 @@ import {
 
 type ConfirmModalProps = {
   visible: boolean;
+  busy?: boolean;
   title: string;
   message: string;
   confirmText?: string;
@@ -19,6 +20,7 @@ type ConfirmModalProps = {
 
 export default function ConfirmModal({
   visible,
+  busy = false,
   title,
   message,
   confirmText = 'Excluir',
@@ -31,7 +33,7 @@ export default function ConfirmModal({
       visible={visible}
       transparent
       animationType="fade"
-      onRequestClose={onCancel}
+      onRequestClose={() => { if (!busy) onCancel(); }}
     >
       <View style={styles.overlay}>
         <View style={styles.modalCard}>
@@ -42,6 +44,8 @@ export default function ConfirmModal({
             <TouchableOpacity
               style={[styles.button, styles.cancelButton]}
               activeOpacity={0.8}
+              disabled={busy}
+              accessibilityState={{ disabled: busy }}
               onPress={onCancel}
             >
               <Text style={styles.cancelButtonText}>{cancelText}</Text>
@@ -50,6 +54,8 @@ export default function ConfirmModal({
             <TouchableOpacity
               style={[styles.button, styles.confirmButton]}
               activeOpacity={0.8}
+              disabled={busy}
+              accessibilityState={{ disabled: busy }}
               onPress={onConfirm}
             >
               <Text style={styles.confirmButtonText}>{confirmText}</Text>
