@@ -11,15 +11,18 @@ import { ActivityIndicator, Text, View } from 'react-native';
 import { colors } from './src/theme';
 import { navigationTheme } from './src/theme/navigation';
 import { FeedbackProvider } from './src/components/ui/FeedbackProvider';
+import { StatusBar } from 'expo-status-bar';
 
 export default function App() {
   const [fontesCarregadas, erroFonte] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   // Nenhuma tela com tipografia de fallback pisca antes das fontes locais.
-  if (!fontesCarregadas) return <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
+  return (
+    <>
+      <StatusBar style="dark" />
+      {!fontesCarregadas ? <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
     {erroFonte ? <Text style={{ color: colors.danger }}>Não foi possível carregar a interface. Reabra o aplicativo.</Text>
       : <ActivityIndicator color={colors.primary} accessibilityLabel="Carregando interface" />}
-  </View>;
-  return (
+  </View> : (
     <SafeAreaProvider>
       <FeedbackProvider>
       <SessionProvider>
@@ -29,5 +32,7 @@ export default function App() {
       </SessionProvider>
       </FeedbackProvider>
     </SafeAreaProvider>
+      )}
+    </>
   );
 }
