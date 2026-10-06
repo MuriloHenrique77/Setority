@@ -10,7 +10,8 @@ export const MovimentoCard = memo(function MovimentoCard({ registro, abrir }: { 
   return <AppCard style={styles.card}><View style={styles.row}>
     <View style={styles.icon}><Ionicons name={entrada ? 'arrow-down-outline' : 'arrow-up-outline'} size={20} color={colors.primary} /></View>
     <View style={styles.info}><Text style={styles.title}>{registro.produto?.nome ?? 'Produto indisponível'}</Text>
-      <Text style={styles.caption}>{registro.setor?.nome ?? 'Setor indisponível'}</Text></View>
+      <Text style={styles.caption}>{registro.setor?.nome ?? 'Setor indisponível'}</Text>
+      {registro.produto?.status === 'inativo' ? <Text style={styles.caption}>Inativo</Text> : null}</View>
   </View><View style={styles.bottom}>
     <Text style={styles.type}>{entrada ? 'Entrada +' : 'Saída -'}{formatarQuantidadeRelatorio(registro.movimento.quantidade)}</Text>
     <Text style={styles.caption}>{formatarDataRelatorio(registro.movimento.criadoEm)}</Text>

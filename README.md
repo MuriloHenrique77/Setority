@@ -12,7 +12,7 @@ O MVP possui Firebase Authentication, onboarding de estabelecimento e CRUD
 de setores/produtos no Firestore, com React Navigation. O cadastro cria
 atomicamente a entrada inicial quando a quantidade é positiva. Permite registrar,
 editar e excluir entradas/saídas, consultar o histórico e abrir **Relatórios** pela
-tela de Setores. Os relatórios oferecem filtros de período, setor, produto e tipo,
+navegação inferior. Os relatórios oferecem filtros de período, setor, produto e tipo,
 totais, rankings, produtos sem movimentação e reposição atual. Não utiliza
 AsyncStorage como persistência. Dados do protótipo local não são migrados.
 
@@ -41,14 +41,14 @@ Validações locais:
 ```powershell
 npx.cmd tsc --noEmit
 npx.cmd expo-doctor
-node --test tests/auth.test.cjs tests/recuperacao-senha.test.cjs tests/visao-estoque.test.cjs tests/setores.test.cjs tests/produtos.test.cjs tests/relatorios.test.cjs tests/listeners.test.cjs tests/navigation.test.cjs
+node --test tests/auth.test.cjs tests/recuperacao-senha.test.cjs tests/visao-estoque.test.cjs tests/setores.test.cjs tests/produtos.test.cjs tests/ciclo-produto.test.cjs tests/relatorios.test.cjs tests/listeners.test.cjs tests/navigation.test.cjs
 npx.cmd --yes firebase-tools emulators:exec --project demo-estoque-local --only auth,firestore "node --test tests/firebase-rules.test.cjs"
 git diff --check
 ```
 
 Consulte [docs/ARQUITETURA.md](docs/ARQUITETURA.md)
-para o protocolo do contador de produtos, isolamento, offline e limite de cascade
-(seis movimentações por produto). A consulta de relatórios exige o índice composto
+para o protocolo do contador de produtos, isolamento, offline e ciclo de vida.
+Produtos com histórico são inativados; exclusão permanente só ocorre sem histórico. A consulta de relatórios exige o índice composto
 de `firestore.indexes.json`, publicado no projeto `controle-de-estoque---tcc`.
 
 Entrada, saída, edição e exclusão de movimentações exigem servidor online; não

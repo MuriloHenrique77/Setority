@@ -1,6 +1,7 @@
 import type { Produto } from '../types/produto.types';
 import type { DadosRelatorio, FiltrosRelatorio, ProdutoMovimentacaoTotal, ResultadoRelatorio, TotalSetor } from '../types/relatorio.types';
 import { ordenarMovimentacoes } from './movimentacoes';
+import { produtoAtivo } from './cicloProduto';
 import { precisaReposicao } from './produtos';
 import { validarIntervaloRelatorio } from './periodoRelatorio';
 
@@ -49,8 +50,8 @@ export function agregarRelatorio(estabelecimentoId: string, dados: DadosRelatori
     movimentos: movimentos.map(movimento => ({ movimento, produto: produtoPorId.get(movimento.produtoId), setor: setorPorId.get(movimento.setorId) })),
     porSetor: [...porSetor.values()].sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR') || a.setorId.localeCompare(b.setorId)),
     maioresEntradas: ranking(entradas), maioresSaidas: ranking(saidas),
-    semMovimentacao: elegiveis.filter(p => !movimentadosPeriodo.has(p.id)),
-    reposicao: elegiveis.filter(precisaReposicao), zerados: elegiveis.filter(p => p.estoqueAtual === 0), setorPorId,
+    semMovimentacao: elegiveis.filter(p => produtoAtivo(p) && !movimentadosPeriodo.has(p.id)),
+    reposicao: elegiveis.filter(p => produtoAtivo(p) && precisaReposicao(p)), zerados: elegiveis.filter(p => produtoAtivo(p) && p.estoqueAtual === 0), setorPorId,
   };
 }
 

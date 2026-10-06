@@ -19,7 +19,7 @@ export function ordenarSetores(setores: readonly Setor[]): Setor[] {
 
 export class SetorComProdutosError extends Error {
   constructor() {
-    super('Este setor possui produtos cadastrados. Remova os produtos antes de excluir o setor.');
+    super('Este setor possui produtos cadastrados, ativos ou inativos. Não é possível excluir o setor enquanto houver produtos vinculados.');
     this.name = 'SetorComProdutosError';
   }
 }

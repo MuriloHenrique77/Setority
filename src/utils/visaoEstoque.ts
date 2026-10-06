@@ -1,4 +1,5 @@
 import type { DadosVisaoEstoque, MovimentoGlobal, ResumoHome } from '../types/visaoEstoque.types';
+import { produtoAtivo } from './cicloProduto';
 import { precisaReposicao } from './produtos';
 
 export function validarVisaoEstoque(estabelecimentoId: string, dados: DadosVisaoEstoque): void {
@@ -7,9 +8,10 @@ export function validarVisaoEstoque(estabelecimentoId: string, dados: DadosVisao
 }
 export function resumirHome(estabelecimentoId: string, dados: DadosVisaoEstoque): ResumoHome {
   validarVisaoEstoque(estabelecimentoId, dados);
-  return { totalProdutos: dados.produtos.length, totalSetores: dados.setores.length,
-    totalReposicao: dados.produtos.filter(precisaReposicao).length,
-    totalZerados: dados.produtos.filter(p => p.estoqueAtual === 0).length };
+  const ativos = dados.produtos.filter(produtoAtivo);
+  return { totalProdutos: ativos.length, totalSetores: dados.setores.length,
+    totalReposicao: ativos.filter(precisaReposicao).length,
+    totalZerados: ativos.filter(p => p.estoqueAtual === 0).length };
 }
 export function listarMovimentosGlobais(estabelecimentoId: string, dados: DadosVisaoEstoque): MovimentoGlobal[] {
   validarVisaoEstoque(estabelecimentoId, dados);

@@ -8,8 +8,10 @@ import { useProdutos } from '../../services/produtos/useProdutos';
 import { useMovimentacoesProduto } from '../../services/movimentacoes/useMovimentacoesProduto';
 import { excluirMovimentacao } from '../../services/movimentacoes/movimentacoesService';
 import { mensagemErroMovimentacao } from '../../utils/movimentacoes';
-import { removerProduto } from '../../services/produtos/produtosService';
-import { mensagemErroProdutos, precisaReposicao } from '../../utils/produtos';
+import { ProdutoLifecycleActions } from '../../components/ProdutoLifecycleActions';
+import { produtoAtivo } from '../../utils/cicloProduto';
+import { colors } from '../../theme';
+import { precisaReposicao } from '../../utils/produtos';
 import { FormButton, authStyles } from '../../components/AuthFormLayout';
 import ConfirmModal from '../../components/ConfirmModal';
 
@@ -33,21 +35,14 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
   const historico = useMovimentacoesProduto(produtoId, setor.id);
   const valido = contexto?.estabelecimentoId === setor.estabelecimentoId;
   const produto = valido && estado.status === 'data' ? estado.produtos.find(p => p.id === produtoId) : undefined;
-  const [confirmando, setConfirmando] = useState(false), [excluindo, setExcluindo] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [movimentoExcluir, setMovimentoExcluir] = useState<Movimentacao | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const lista = useRef<FlatList<Movimentacao>>(null);
   const ocupado = useRef(false), ativo = useRef(true);
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
-  async function excluir() {
-    if (ocupado.current || !contexto || !produto) return;
-    ocupado.current = true; setExcluindo(true); setErro(null);
-    try { await removerProduto(contexto, produto.id); if (ativo.current) navigation.goBack(); }
-    catch (e) { if (ativo.current) { setErro(mensagemErroProdutos(e)); lista.current?.scrollToOffset({ offset: 0, animated: true }); } }
-    finally { ocupado.current = false; if (ativo.current) { setConfirmando(false); setExcluindo(false); } }
-  }
   async function excluirRegistro() {
-    if (ocupado.current || !contexto || !produto || !movimentoExcluir) return;
+    if (ocupado.current || !contexto || !produto || !produtoAtivo(produto) || !movimentoExcluir) return;
     ocupado.current = true; setExcluindo(true); setErro(null);
     try { await excluirMovimentacao(contexto, produtoId, setor.id, movimentoExcluir.id); }
     catch (e) { if (ativo.current) { setErro(mensagemErroMovimentacao(e, true)); lista.current?.scrollToOffset({ offset: 0, animated: true }); } }
@@ -57,7 +52,7 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
     navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: movimentacao.tipo, movimentacao: dadosDeRota(movimentacao) });
   }, [navigation, setor, produtoId]);
   const renderMovimento = useCallback(({ item }: { item: Movimentacao }) =>
-    <LinhaMovimento item={item} editar={editarRegistro} excluir={setMovimentoExcluir} disabled={excluindo || !produto || !valido} />,
+    <LinhaMovimento item={item} editar={editarRegistro} excluir={setMovimentoExcluir} disabled={excluindo || !produto || !valido || !produtoAtivo(produto)} />,
     [editarRegistro, excluindo, produto, valido]);
   const erroLista = estado.status === 'error' ? estado.mensagem : null;
   const movimentos = valido && historico.estado.status === 'data' ? historico.estado.movimentos : [];
@@ -69,17 +64,18 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
     {produto ? <>
       <Text style={styles.texto}>Setor: {setor.nome}</Text>
       <Text style={styles.titulo}>{produto.nome}</Text>
+      {produto.status === 'inativo' ? <Text style={styles.alerta}>Produto inativo — estoque e histórico preservados</Text> : null}
       <Text style={styles.texto}>{produto.descricao || 'Sem descrição'}</Text>
       <Text style={styles.saldo}>Estoque atual: {produto.estoqueAtual}</Text>
       {produto.estoqueMinimo !== undefined ? <Text style={styles.texto}>Estoque mínimo: {produto.estoqueMinimo}</Text> : null}
-      {produto.estoqueAtual === 0 ? <Text style={styles.alerta}>Estoque zerado</Text> : null}
-      {precisaReposicao(produto) ? <Text style={styles.alerta}>Necessita reposição</Text> : null}
+      {produtoAtivo(produto) && produto.estoqueAtual === 0 ? <Text style={styles.alerta}>Estoque zerado</Text> : null}
+      {produtoAtivo(produto) && precisaReposicao(produto) ? <Text style={styles.alerta}>Necessita reposição</Text> : null}
       <View style={styles.acoes}>
-        <View style={styles.acao}><FormButton label="Entrada" disabled={excluindo} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'entrada' })} /></View>
-        <View style={styles.acao}><FormButton label="Saída" disabled={excluindo} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'saida' })} /></View>
+        <View style={styles.acao}><FormButton label="Entrada" disabled={excluindo || !produtoAtivo(produto)} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'entrada' })} /></View>
+        <View style={styles.acao}><FormButton label="Saída" disabled={excluindo || !produtoAtivo(produto)} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'saida' })} /></View>
       </View>
       <FormButton label="Editar produto" disabled={excluindo} onPress={() => navigation.navigate('ProdutoForm', { setor, produto: dadosDeRota(produto) })} />
-      <FormButton label={excluindo ? 'Excluindo...' : 'Excluir produto'} disabled={excluindo} onPress={() => setConfirmando(true)} />
+      <ProdutoLifecycleActions produto={produto} contexto={valido ? contexto : null} removido={() => navigation.goBack()} />
     </> : null}
     <Text style={styles.titulo}>Histórico de movimentações</Text>
     {historico.estado.status === 'loading' ? <Text>Carregando histórico...</Text> : null}
@@ -93,18 +89,15 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
       message="Deseja excluir esta movimentação? O estoque do produto será recalculado."
       confirmText={excluindo ? 'Excluindo...' : 'Excluir'}
       onConfirm={() => { void excluirRegistro(); }} onCancel={() => { if (!ocupado.current) setMovimentoExcluir(null); }} />
-    <ConfirmModal visible={confirmando} busy={excluindo} title="Excluir produto"
-      message="Ao excluir este produto, todas as movimentações vinculadas a ele também serão removidas. Deseja continuar?"
-      onConfirm={() => { void excluir(); }} onCancel={() => { if (!ocupado.current) setConfirmando(false); }} />
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
-  area: { flex: 1, backgroundColor: '#F5F5F5' }, conteudo: { padding: 20, paddingBottom: 32 },
-  titulo: { color: '#111', fontSize: 24, fontWeight: '700', marginBottom: 12, marginTop: 12 },
-  texto: { color: '#555', fontSize: 15, lineHeight: 22, marginBottom: 8 },
-  saldo: { color: '#1565C0', fontSize: 26, fontWeight: '700', marginVertical: 14 },
-  alerta: { color: '#A31818', fontSize: 16, fontWeight: '600', marginBottom: 10 },
+  area: { flex: 1, backgroundColor: colors.background }, conteudo: { padding: 20, paddingBottom: 32 },
+  titulo: { color: colors.text, fontSize: 24, fontWeight: '700', marginBottom: 12, marginTop: 12 },
+  texto: { color: colors.textSecondary, fontSize: 15, lineHeight: 22, marginBottom: 8 },
+  saldo: { color: colors.primary, fontSize: 26, fontWeight: '700', marginVertical: 14 },
+  alerta: { color: colors.warning, fontSize: 16, fontWeight: '600', marginBottom: 10 },
   acoes: { flexDirection: 'row', gap: 12, marginTop: 12 }, acao: { flex: 1 },
-  movimento: { padding: 16, backgroundColor: '#FFF', borderRadius: 12, marginTop: 12, borderWidth: 1, borderColor: '#DDD' },
-  nome: { color: '#111', fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  movimento: { padding: 16, backgroundColor: colors.surface, borderRadius: 12, marginTop: 12, borderWidth: 1, borderColor: colors.border },
+  nome: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
 });

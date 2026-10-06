@@ -4,7 +4,7 @@ import type { Produto } from '../types/produto.types';
 import type { Movimentacao, TipoMovimentacao } from '../types/movimentacao.types';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
-export type DadosRota<T> = Omit<T, 'criadoEm' | 'atualizadoEm'>;
+export type DadosRota<T> = Omit<T, 'criadoEm' | 'atualizadoEm' | 'inativadoEm'>;
 
 export type StockStackParamList = {
   Setores: undefined;

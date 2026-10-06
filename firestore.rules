@@ -12,6 +12,9 @@ service cloud.firestore {
     // Quantidades: inteiros de 0 até 9007199254740991. Quantidade inicial imutável.
     // movimentacoes/inicial_{produtoId}: estabelecimentoId, produtoId, setorId,
     // tipo entrada, quantidade > 0, observacao Estoque inicial, criadoPor, criadoEm.
+    // Etapa 10B: status ativo/inativo; inativadoEm timestamp|null; inativadoPor UID|null.
+    // possuiHistorico bool irreversível; criação exige todos os campos de ciclo.
+    // Legado sem status é ativo; marcador ausente impede exclusão permanente.
     // Setor: quantidadeProdutos e ultimaOperacaoProdutoId são campos técnicos.
     // Contador aceita int ou float integral: RNFB Android serializa increment como double.
     // Legado sem contador equivale a zero. Cada commit muda um produto por setor.
@@ -118,8 +121,8 @@ service cloud.firestore {
 
     // Registro técnico de até seis IDs existentes; exclusões removem o ID registrado.
     // Não limita o histórico:
-    // Cascade exige contagem <=6 E todos os IDs existentes registrados.
-    // O limite conservador existe devido aos acessos getAfter, não ao limite de writes.
+    // Mantido para compatibilidade das operações individuais; não autoriza cascade.
+    // Produto com qualquer histórico é preservado pela inativação.
     function movementCount(data) {
       return data.get('quantidadeMovimentacoes', data.quantidadeInicial > 0 ? 1 : 0);
     }
@@ -154,9 +157,29 @@ service cloud.firestore {
       return data.get('quantidadeProdutos', 0);
     }
 
+    // Etapa 10B: legado sem status é ativo; sem marcador nunca autoriza delete.
+    function activeProduct(data) { return data.get('status', 'ativo') == 'ativo'; }
+    function validLifecycle(data) {
+      return data.get('status', 'ativo') in ['ativo', 'inativo']
+        && (!('possuiHistorico' in data) || data.possuiHistorico is bool)
+        && (data.get('inativadoEm', null) == null || data.inativadoEm is timestamp)
+        && (data.get('inativadoPor', null) == null || validId(data.inativadoPor))
+        && (activeProduct(data)
+          ? data.get('inativadoEm', null) == null && data.get('inativadoPor', null) == null
+          : data.inativadoEm is timestamp && validId(data.inativadoPor));
+    }
+    function validLifecycleChange(before, after) {
+      return after.diff(before).affectedKeys().hasOnly(['status', 'inativadoEm', 'inativadoPor', 'atualizadoEm'])
+        && ((activeProduct(before) && after.status == 'inativo'
+          && after.inativadoPor == request.auth.uid && after.inativadoEm == request.time)
+          || (!activeProduct(before) && after.status == 'ativo'
+          && after.inativadoPor == null && after.inativadoEm == null));
+    }
+
     function validProduct(data, id) {
       return data.keys().hasAll(['id', 'estabelecimentoId', 'setorId', 'nome', 'quantidadeInicial', 'estoqueAtual', 'criadoEm'])
-        && data.keys().hasOnly(['id', 'estabelecimentoId', 'setorId', 'nome', 'descricao', 'quantidadeInicial', 'estoqueMinimo', 'estoqueAtual', 'criadoEm', 'atualizadoEm', 'quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId'])
+        && data.keys().hasOnly(['id', 'estabelecimentoId', 'setorId', 'nome', 'descricao', 'quantidadeInicial', 'estoqueMinimo', 'estoqueAtual', 'criadoEm', 'atualizadoEm', 'quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId', 'status', 'inativadoEm', 'inativadoPor', 'possuiHistorico'])
+        && validLifecycle(data)
         && validId(data.id) && data.id == id
         && validId(data.estabelecimentoId) && validId(data.setorId)
         && data.nome is string && data.nome.size() > 0 && data.nome.size() <= 120
@@ -223,7 +246,8 @@ service cloud.firestore {
       let id = after.ultimaMovimentacaoId;
       let path = movementPath(id);
       let movement = getAfter(path).data;
-      return after.diff(before).affectedKeys().hasOnly(['estoqueAtual', 'atualizadoEm', 'quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId'])
+      return after.possuiHistorico == true
+        && after.diff(before).affectedKeys().hasOnly(['estoqueAtual', 'atualizadoEm', 'quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId', 'possuiHistorico'])
         && !exists(path) && validNormalMovement(movement, before, id)
         && movementCount(after) == movementCount(before) + 1
         && movementIds(after) == (movementIds(before).size() < 6 ? movementIds(before).concat([id]) : movementIds(before))
@@ -266,15 +290,16 @@ service cloud.firestore {
     }
     function validProductMovementChange(before, after) {
       let path = movementPath(after.ultimaMovimentacaoId);
-      return (!exists(path) && validProductMovementCreate(before, after))
+      return activeProduct(before) && activeProduct(after) && ((!exists(path) && validProductMovementCreate(before, after))
         || (exists(path) && getAfter(path) != null && validProductMovementEdit(before, after))
-        || (exists(path) && getAfter(path) == null && validProductMovementDelete(before, after));
+        || (exists(path) && getAfter(path) == null && validProductMovementDelete(before, after)));
     }
     function movementEditLinked(before, after, id) {
       let path = productPath(before.produtoId);
       let product = get(path).data;
       let updated = getAfter(path).data;
-      return movementBelongs(before, product) && movementBelongs(after, updated)
+      return activeProduct(product) && activeProduct(updated)
+        && movementBelongs(before, product) && movementBelongs(after, updated)
         && (before.quantidade == after.quantidade
           ? updated.estoqueAtual == product.estoqueAtual
           : updated.ultimaMovimentacaoId == id && updated.estoqueAtual != product.estoqueAtual);
@@ -283,19 +308,9 @@ service cloud.firestore {
       let path = productPath(data.produtoId);
       let before = get(path).data;
       let after = getAfter(path).data;
-      return movementBelongs(data, before) && after.ultimaMovimentacaoId == id
+      return activeProduct(before) && activeProduct(after)
+        && movementBelongs(data, before) && after.ultimaMovimentacaoId == id
         && movementCount(after) == movementCount(before) - 1;
-    }
-
-    function completeCascade(data) {
-      let ids = movementIds(data);
-      return movementCount(data) <= 6 && ids.size() == movementCount(data)
-        && (ids.size() < 1 || getAfter(movementPath(ids[0])) == null)
-        && (ids.size() < 2 || getAfter(movementPath(ids[1])) == null)
-        && (ids.size() < 3 || getAfter(movementPath(ids[2])) == null)
-        && (ids.size() < 4 || getAfter(movementPath(ids[3])) == null)
-        && (ids.size() < 5 || getAfter(movementPath(ids[4])) == null)
-        && (ids.size() < 6 || getAfter(movementPath(ids[5])) == null);
     }
 
     function normalMovementLinked(data, id) {
@@ -306,7 +321,8 @@ service cloud.firestore {
       // Portanto a Rule de update do produto obrigatoriamente valida o movimento
       // deste mesmo ID, seu schema, autor, vínculos, delta e registro append-only.
       // Não repetir essa validação evita exceder 1000 expressões com opcionais.
-      return data.estabelecimentoId == before.estabelecimentoId
+      return activeProduct(before) && activeProduct(after)
+        && data.estabelecimentoId == before.estabelecimentoId
         && after.ultimaMovimentacaoId == id
         && movementCount(after) == movementCount(before) + 1;
     }
@@ -355,6 +371,9 @@ service cloud.firestore {
       allow get, list: if belongsToUser(resource.data.estabelecimentoId);
       allow create: if belongsToUser(request.resource.data.estabelecimentoId)
         && validProduct(request.resource.data, produtoId)
+        && request.resource.data.keys().hasAll(['status', 'inativadoEm', 'inativadoPor', 'possuiHistorico'])
+        && request.resource.data.status == 'ativo'
+        && request.resource.data.possuiHistorico == (request.resource.data.quantidadeInicial > 0)
         && request.resource.data.criadoEm == request.time
         && (!('atualizadoEm' in request.resource.data) || request.resource.data.atualizadoEm == request.time)
         && request.resource.data.estoqueAtual == request.resource.data.quantidadeInicial
@@ -370,12 +389,15 @@ service cloud.firestore {
       allow update: if belongsToUser(resource.data.estabelecimentoId)
         && validProduct(request.resource.data, produtoId)
         && (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['nome', 'descricao', 'estoqueMinimo', 'atualizadoEm'])
+          || validLifecycleChange(resource.data, request.resource.data)
           || validProductMovementChange(resource.data, request.resource.data))
         && request.resource.data.atualizadoEm == request.time;
       allow delete: if belongsToUser(resource.data.estabelecimentoId)
         && validMovementRegistry(resource.data)
         && productSectorChange(resource.data, -1)
-        && completeCascade(resource.data);
+        && resource.data.get('possuiHistorico', true) == false
+        && resource.data.quantidadeInicial == 0 && resource.data.estoqueAtual == 0
+        && movementCount(resource.data) == 0 && movementIds(resource.data).size() == 0;
     }
 
     match /movimentacoes/{movimentacaoId} {
@@ -392,8 +414,8 @@ service cloud.firestore {
       allow delete: if belongsToUser(resource.data.estabelecimentoId)
         && exists(productPath(resource.data.produtoId))
         && get(productPath(resource.data.produtoId)).data.estabelecimentoId == resource.data.estabelecimentoId
-        && (getAfter(productPath(resource.data.produtoId)) == null
-          || movementDeleteLinked(resource.data, movimentacaoId));
+        && getAfter(productPath(resource.data.produtoId)) != null
+        && movementDeleteLinked(resource.data, movimentacaoId);
     }
 
     // Subcoleções e operações não previstas continuam fechadas.

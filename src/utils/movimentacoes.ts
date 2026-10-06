@@ -1,8 +1,8 @@
 import type { Movimentacao, TipoMovimentacao } from '../types/movimentacao.types';
 import { inteiroEstoque } from './produtos';
 
-// Orçamento de leituras das Rules; não é um limite para registrar movimentações.
-export const LIMITE_CASCADE_MOVIMENTACOES = 6;
+// Registro técnico compatível com as Rules existentes; não limita o histórico.
+export const LIMITE_REGISTRO_MOVIMENTACOES = 6;
 export type DadosMovimentacao = { quantidade: number; observacao?: string };
 export type RegistroMovimentacoes = { quantidadeMovimentacoes: number; movimentacaoIds: string[]; ultimaMovimentacaoId?: string };
 const idValido = (valor: unknown): valor is string => typeof valor === 'string' &&
@@ -30,7 +30,7 @@ export function lerRegistroMovimentacoes(d: Record<string, unknown>, id: string)
   if (campos.every(c => d[c] === undefined)) return { quantidadeMovimentacoes: inicial.length, movimentacaoIds: inicial,
     ...(inicial.length ? { ultimaMovimentacaoId: inicial[0] } : {}) };
   const count = d.quantidadeMovimentacoes, ids = d.movimentacaoIds, ultima = d.ultimaMovimentacaoId;
-  if (!inteiroEstoque(count) || !Array.isArray(ids) || ids.length > Math.min(count, LIMITE_CASCADE_MOVIMENTACOES) ||
+  if (!inteiroEstoque(count) || !Array.isArray(ids) || ids.length > Math.min(count, LIMITE_REGISTRO_MOVIMENTACOES) ||
       ids.some(v => !idValido(v)) || new Set(ids).size !== ids.length ||
       (ultima !== undefined ? !idValido(ultima) : count > 0)) {
     throw new Error('Registro de movimentações inválido.');
@@ -41,17 +41,8 @@ export function lerRegistroMovimentacoes(d: Record<string, unknown>, id: string)
 export function acrescentarMovimentacao(registro: RegistroMovimentacoes, id: string): RegistroMovimentacoes {
   if (!idValido(id) || registro.movimentacaoIds.includes(id) || !inteiroEstoque(registro.quantidadeMovimentacoes + 1)) throw new Error('Registro de movimentações inválido.');
   return { quantidadeMovimentacoes: registro.quantidadeMovimentacoes + 1,
-    movimentacaoIds: registro.movimentacaoIds.length < LIMITE_CASCADE_MOVIMENTACOES ? [...registro.movimentacaoIds, id] : registro.movimentacaoIds,
+    movimentacaoIds: registro.movimentacaoIds.length < LIMITE_REGISTRO_MOVIMENTACOES ? [...registro.movimentacaoIds, id] : registro.movimentacaoIds,
     ultimaMovimentacaoId: id };
-}
-
-export function validarCascade(registro: RegistroMovimentacoes, ids: readonly string[]): void {
-  if (registro.quantidadeMovimentacoes > LIMITE_CASCADE_MOVIMENTACOES || ids.length > LIMITE_CASCADE_MOVIMENTACOES) {
-    throw new Error('Este produto possui um histórico extenso e não pode ser excluído diretamente pelo aplicativo. Você pode continuar registrando e alterando suas movimentações. Nenhum dado foi removido.');
-  }
-  if (ids.length !== registro.quantidadeMovimentacoes || registro.movimentacaoIds.length !== registro.quantidadeMovimentacoes || registro.movimentacaoIds.some(id => !ids.includes(id))) {
-    throw new Error('Não foi possível confirmar a exclusão completa do histórico. Atualize e tente novamente. Se o produto já teve um histórico extenso, remova suas movimentações individualmente antes de excluir o produto. Nenhum dado foi removido.');
-  }
 }
 
 export function ordenarMovimentacoes(movs: readonly Movimentacao[]): Movimentacao[] {

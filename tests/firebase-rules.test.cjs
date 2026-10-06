@@ -430,6 +430,7 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
     const writes = [{
       update: { name: name('produtos', id), fields: {
         id: string(id), estabelecimentoId: string(est), setorId: string(sector), nome: string('TESTE Produto'),
+        status: string('ativo'), inativadoEm: {nullValue:null}, inativadoPor: {nullValue:null}, possuiHistorico: {booleanValue:quantity>0},
         quantidadeInicial: integer(quantity), estoqueAtual: integer(quantity),
       } },
       updateTransforms: [{ fieldPath: 'criadoEm', setToServerValue: 'REQUEST_TIME' }],
@@ -464,16 +465,16 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
     assert.equal(movement.quantidade.integerValue, '10');
   });
   successful(await commit(productWrites(bProduct, 0, b, bEst, bSector), b.token));
-  await t.test('RNFB Android: increment double integral aceita cadastro e cascade com contador seguro', async () => {
+  await t.test('RNFB Android: contador double integral aceita cadastro e exclusão sem histórico', async () => {
     const id = randomUUID();
-    const writes = productWrites(id, 10);
+    const writes = productWrites(id, 0);
     writes[1].updateTransforms[0].increment = { doubleValue: 1.0 };
     successful(await commit(writes));
     const sector = (await request('GET', `/setores/${aSector}`, a.token)).data.fields;
     assert.equal(sector.quantidadeProdutos.doubleValue, 3);
     const decrement = sectorChange(aSector, id, -1);
     decrement.updateTransforms[0].increment = { doubleValue: -1.0 };
-    successful(await commit([{ delete: name('produtos', id) }, { delete: name('movimentacoes', `inicial_${id}`) }, decrement]));
+    successful(await commit([{ delete: name('produtos', id) }, decrement]));
     assert.equal((await request('GET', `/setores/${aSector}`, a.token)).data.fields.quantidadeProdutos.doubleValue, 2);
     assert.equal((await request('GET', `/movimentacoes/inicial_${id}`, 'owner')).status, 404);
   });
@@ -607,15 +608,15 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
   await t.test('B não exclui produto e movimento de A', async () => denied(await commit([
     { delete: name('produtos', positive) }, { delete: name('movimentacoes', `inicial_${positive}`) }, sectorChange(aSector, positive, -1),
   ], b.token)));
-  await t.test('cascade atômico elimina produto e movimento sem órfão', async () => {
-    successful(await commit([{ delete: name('produtos', positive) }, { delete: name('movimentacoes', `inicial_${positive}`) }, sectorChange(aSector, positive, -1)]));
-    assert.equal((await request('GET', `/produtos/${positive}`, 'owner')).status, 404);
-    assert.equal((await request('GET', `/movimentacoes/inicial_${positive}`, 'owner')).status, 404);
+  await t.test('cascade atômico com histórico é bloqueado e preserva produto e movimento', async () => {
+    denied(await commit([{ delete: name('produtos', positive) }, { delete: name('movimentacoes', `inicial_${positive}`) }, sectorChange(aSector, positive, -1)]));
+    assert.equal((await request('GET', `/produtos/${positive}`, 'owner')).status, 200);
+    assert.equal((await request('GET', `/movimentacoes/inicial_${positive}`, 'owner')).status, 200);
     denied(await request('DELETE', `/setores/${aSector}`, a.token));
   });
   await t.test('excluir produto zero libera exclusão setor somente quando contador zerado', async () => {
     successful(await commit([{ delete: name('produtos', zero) }, sectorChange(aSector, zero, -1)]));
-    successful(await request('DELETE', `/setores/${aSector}`, a.token));
+    denied(await request('DELETE', `/setores/${aSector}`, a.token));
   });
 });
 
@@ -647,7 +648,8 @@ test('Etapa 7A: deltas atômicos, histórico, concorrência e cascade completo',
     const writes = [{ update: { name: path('produtos', id), fields: {
       id: string(id), estabelecimentoId: string(est), setorId: string(sector), nome: string('TESTE Movimento'),
       descricao: string('Descrição de teste\nCom campos opcionais'), estoqueMinimo: integer(5),
-      quantidadeInicial: integer(quantity), estoqueAtual: integer(quantity), quantidadeMovimentacoes: integer(quantity > 0 ? 1 : 0),
+      status: string('ativo'), inativadoEm: {nullValue:null}, inativadoPor: {nullValue:null}, possuiHistorico: {booleanValue:quantity>0},
+        quantidadeInicial: integer(quantity), estoqueAtual: integer(quantity), quantidadeMovimentacoes: integer(quantity > 0 ? 1 : 0),
       movimentacaoIds: { arrayValue: { values: quantity > 0 ? [string(`inicial_${id}`)] : [] } },
       ...(quantity > 0 ? { ultimaMovimentacaoId: string(`inicial_${id}`) } : {}),
     } }, updateTransforms: [{ fieldPath: 'criadoEm', setToServerValue: 'REQUEST_TIME' }] }, sectorChange(id, 1)];
@@ -667,10 +669,10 @@ test('Etapa 7A: deltas atômicos, histórico, concorrência e cascade completo',
       quantidade: integer(quantity), observacao: string('TESTE Operação'), criadoPor: string(a.uid),
     } }, updateTransforms: [{ fieldPath: 'criadoEm', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: false } },
     { update: { name: path('produtos', id), fields: {
-      estoqueAtual: integer(Number(fields.estoqueAtual.integerValue) + (type === 'entrada' ? quantity : -quantity)),
+      possuiHistorico: {booleanValue:true}, estoqueAtual: integer(Number(fields.estoqueAtual.integerValue) + (type === 'entrada' ? quantity : -quantity)),
       quantidadeMovimentacoes: integer(count + 1), movimentacaoIds: { arrayValue: { values: count < 6 ? [...ids, string(movementId)] : ids } },
       ultimaMovimentacaoId: string(movementId),
-    } }, updateMask: { fieldPaths: ['estoqueAtual', 'quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId'] },
+    } }, updateMask: { fieldPaths: ['estoqueAtual', 'quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId', 'possuiHistorico'] },
     updateTransforms: [{ fieldPath: 'atualizadoEm', setToServerValue: 'REQUEST_TIME' }] }];
   }
   const product = await create();
@@ -790,7 +792,7 @@ test('Etapa 7A: deltas atômicos, histórico, concorrência e cascade completo',
     return [{ delete: path('produtos', id) }, sectorChange(id, -1),
       ...(fields.movimentacaoIds.arrayValue.values || []).map((value) => ({ delete: path('movimentacoes', value.stringValue) }))];
   }
-  await t.test('cascade cap6 elimina todas movimentações, sem órfãos', async () => {
+  await t.test('cascade cap6 é bloqueado e preserva todas movimentações', async () => {
     const id = await create();
     for (let index = 0; index < 5; index++) {
       const snapshot = await read(id);
@@ -804,8 +806,8 @@ test('Etapa 7A: deltas atômicos, histórico, concorrência e cascade completo',
     const writes = cascade(id, fields);
     denied(await commit(writes.slice(0, -1)), 'não omitir movimento normal');
     denied(await commit(writes.filter((write) => !write.delete?.includes('/movimentacoes/inicial_'))), 'não omitir inicial');
-    success(await commit(writes));
-    for (const write of writes.filter((write) => write.delete)) assert.equal((await request('GET', `/${write.delete.split('/documents/')[1]}`, 'owner')).status, 404);
+    denied(await commit(writes));
+    for (const write of writes.filter((write) => write.delete)) assert.equal((await request('GET', `/${write.delete.split('/documents/')[1]}`, 'owner')).status, 200);
   });
   await t.test('cap+1 e cap+2 permitem movimentar com opcionais, mas bloqueiam cascade', async () => {
     const id = await create();
@@ -911,7 +913,7 @@ test('7B edição/exclusão: deltas, imutabilidade, isolamento e concorrência',
  });
  function newMovement(f,tipo,q){
   const id=randomUUID(), count=Number(f.product.quantidadeMovimentacoes.integerValue), ids=(f.product.movimentacaoIds.arrayValue.values||[]).map(v=>v.stringValue);
-  const fields={estoqueAtual:num(Number(f.product.estoqueAtual.integerValue)+(tipo==='entrada'?q:-q)),quantidadeMovimentacoes:num(count+1),movimentacaoIds:arr(ids.length<6?[...ids,id]:ids),ultimaMovimentacaoId:string(id)};
+  const fields={possuiHistorico:{booleanValue:true},estoqueAtual:num(Number(f.product.estoqueAtual.integerValue)+(tipo==='entrada'?q:-q)),quantidadeMovimentacoes:num(count+1),movimentacaoIds:arr(ids.length<6?[...ids,id]:ids),ultimaMovimentacaoId:string(id)};
   return [{update:{name:path('movimentacoes',id),fields:{id:string(id),estabelecimentoId:string(est),produtoId:string(f.p),setorId:string(sector),tipo:string(tipo),quantidade:num(q),criadoPor:string(u.uid)}},updateTransforms:[{fieldPath:'criadoEm',setToServerValue:'REQUEST_TIME'}]},
    {update:{name:path('produtos',f.p),fields},updateMask:{fieldPaths:Object.keys(fields)},updateTransforms:timestamp}];
  }
@@ -947,8 +949,8 @@ test('7B edição/exclusão: deltas, imutabilidade, isolamento e concorrência',
   f.product=(await read('produtos',f.p)).data.fields;f.ids=f.product.movimentacaoIds.arrayValue.values.map(v=>v.stringValue);
   assert.equal(f.product.quantidadeMovimentacoes.integerValue,'5');assert.equal(f.ids.length,5);
   const cascade=[{delete:path('produtos',f.p)},...f.ids.map(id=>({delete:path('movimentacoes',id)})),{update:{name:path('setores',sector),fields:{quantidadeProdutos:num(0),ultimaOperacaoProdutoId:string(f.p)}},updateMask:{fieldPaths:['quantidadeProdutos','ultimaOperacaoProdutoId']},updateTransforms:timestamp}];
-  denied(await commit(cascade.slice(0,-2).concat(cascade.at(-1))));ok(await commit(cascade));
-  assert.equal((await read('produtos',f.p,'owner')).status,404);for(const id of originals)assert.equal((await read('movimentacoes',id,'owner')).status,404);
+  denied(await commit(cascade.slice(0,-2).concat(cascade.at(-1))));denied(await commit(cascade));
+  assert.equal((await read('produtos',f.p,'owner')).status,200);for(const id of f.ids)assert.equal((await read('movimentacoes',id,'owner')).status,200);
  });
  await t.test('inicial legada sem id permanece sem id na edição e segue exclusão',async()=>{
   const f=await fixture('entrada',10,10,1,true);delete f.movement.id;
@@ -957,4 +959,86 @@ test('7B edição/exclusão: deltas, imutabilidade, isolamento e concorrência',
   assert.equal('id' in f.movement,false);ok(await commit(writes(f,0,true)));assert.equal((await read('produtos',f.p)).data.fields.quantidadeInicial.integerValue,'10');
  });
 
+});
+
+test('Etapa 10B: ciclo, histórico irreversível, legado, RN08 e isolamento', async t => {
+ const a=await signup(),b=await signup(), ea=randomUUID(),eb=randomUUID(), sa=randomUUID(),sb=randomUUID();
+ const num=n=>({integerValue:String(n)}),nil={nullValue:null},bool=v=>({booleanValue:v});
+ const path=(c,id)=>`${database}/documents/${c}/${id}`;
+ const commit=(w,token=a.token)=>request('POST',':commit',token,{writes:w});
+ const ok=r=>assert.equal(r.status,200,JSON.stringify(r.data));
+ const stamp=fieldPath=>({fieldPath,setToServerValue:'REQUEST_TIME'});
+ const update=(c,id,fields,extra=[])=>({update:{name:path(c,id),fields},updateMask:{fieldPaths:Object.keys(fields)},updateTransforms:[stamp('atualizadoEm'),...extra]});
+ const sectorChange=(s,id,delta)=>({update:{name:path('setores',s),fields:{ultimaOperacaoProdutoId:string(id)}},updateMask:{fieldPaths:['ultimaOperacaoProdutoId']},updateTransforms:[stamp('atualizadoEm'),{fieldPath:'quantidadeProdutos',increment:num(delta)}]});
+ for(const [u,e,s] of [[a,ea,sa],[b,eb,sb]]) {
+  ok(await commit(onboarding(u,e),u.token));
+  ok(await commit([{update:{name:path('setores',s),fields:{id:string(s),estabelecimentoId:string(e),nome:string('Ciclo')}},updateTransforms:[stamp('criadoEm')]}],u.token));
+ }
+ function creation(id,q,u=a,e=ea,s=sa) {
+  const initial='inicial_'+id;
+  const writes=[{update:{name:path('produtos',id),fields:{id:string(id),estabelecimentoId:string(e),setorId:string(s),nome:string('Ciclo'),quantidadeInicial:num(q),estoqueAtual:num(q),status:string('ativo'),inativadoEm:nil,inativadoPor:nil,possuiHistorico:bool(q>0),quantidadeMovimentacoes:num(q>0?1:0),movimentacaoIds:{arrayValue:{values:q>0?[string(initial)]:[]}},...(q>0?{ultimaMovimentacaoId:string(initial)}:{})}},updateTransforms:[stamp('criadoEm'),stamp('atualizadoEm')]},sectorChange(s,id,1)];
+  if(q>0)writes.push({update:{name:path('movimentacoes',initial),fields:{id:string(initial),estabelecimentoId:string(e),setorId:string(s),produtoId:string(id),tipo:string('entrada'),quantidade:num(q),observacao:string('Estoque inicial'),criadoPor:string(u.uid)}},updateTransforms:[stamp('criadoEm')]});
+  return writes;
+ }
+ const zero=randomUUID(),positive=randomUUID(),other=randomUUID();
+ await t.test('criação zero ativo histórico false',async()=>ok(await commit(creation(zero,0))));
+ await t.test('criação positiva ativo histórico true com inicial',async()=>ok(await commit(creation(positive,10))));
+ ok(await commit(creation(other,10,b,eb,sb),b.token));
+ for(const [label,change] of [
+ ['marcador falso com inicial',w=>w[0].update.fields.possuiHistorico=bool(false)],
+ ['marcador true sem movimento',w=>w[0].update.fields.possuiHistorico=bool(true)],
+ ['sem marcador',w=>delete w[0].update.fields.possuiHistorico],
+ ['sem status',w=>delete w[0].update.fields.status],
+ ['status inválido',w=>w[0].update.fields.status=string('arquivado')],
+ ['nascer inativo',w=>w[0].update.fields.status=string('inativo')],
+ ['timestamp indevido ativo',w=>w[0].update.fields.inativadoEm={timestampValue:'2026-10-01T00:00:00Z'}],
+ ['UID indevido ativo',w=>w[0].update.fields.inativadoPor=string(a.uid)],
+ ['bool inválido',w=>w[0].update.fields.possuiHistorico=string('false')]]) await t.test('nega criação '+label,async()=>{const w=creation(randomUUID(),label==='marcador falso com inicial'?10:0);change(w);denied(await commit(w));});
+ const inactive=(id,u=a)=>update('produtos',id,{status:string('inativo'),inativadoPor:string(u.uid)},[stamp('inativadoEm')]);
+ const active=id=>update('produtos',id,{status:string('ativo'),inativadoEm:nil,inativadoPor:nil});
+ for(const [label,fields,transforms] of [
+ ['UID diferente',{status:string('inativo'),inativadoPor:string(b.uid)},[stamp('inativadoEm')]],
+ ['data antiga',{status:string('inativo'),inativadoPor:string(a.uid),inativadoEm:{timestampValue:'2026-10-01T00:00:00Z'}},[]],
+ ['sem autor',{status:string('inativo'),inativadoPor:nil},[stamp('inativadoEm')]],
+ ['status inválido',{status:string('pausado')},[]],
+ ['timestamp em edição comum',{inativadoEm:{timestampValue:'2026-10-01T00:00:00Z'}},[]],
+ ['UID em edição comum',{inativadoPor:string(a.uid)},[]],
+ ['true para false',{possuiHistorico:bool(false)},[]],
+ ['remover marcador',{},[]]]) await t.test('nega update '+label,async()=>{
+  const w=update('produtos',positive,fields,transforms);if(label==='remover marcador')w.updateMask.fieldPaths=['possuiHistorico'];denied(await commit([w]));
+ });
+ await t.test('false para true sem primeiro movimento é negado',async()=>denied(await commit([update('produtos',zero,{possuiHistorico:bool(true)})])));
+ await t.test('inativação válida preserva saldo e histórico',async()=>{ok(await commit([inactive(positive)]));const p=(await request('GET','/produtos/'+positive,a.token)).data.fields;assert.equal(p.estoqueAtual.integerValue,'10');assert.equal(p.possuiHistorico.booleanValue,true);assert.equal(p.inativadoPor.stringValue,a.uid);});
+ await t.test('RN08 produto inativo bloqueia setor',async()=>denied(await request('DELETE','/setores/'+sa,a.token)));
+ function movement(id,q=1,type='entrada') {
+  const m=randomUUID();return [{update:{name:path('movimentacoes',m),fields:{id:string(m),estabelecimentoId:string(ea),setorId:string(sa),produtoId:string(id),tipo:string(type),quantidade:num(q),criadoPor:string(a.uid)}},updateTransforms:[stamp('criadoEm')]},update('produtos',id,{estoqueAtual:num(id===positive?10+q:q),possuiHistorico:bool(true),quantidadeMovimentacoes:num(id===positive?2:1),movimentacaoIds:{arrayValue:{values:id===positive?[string('inicial_'+id),string(m)]:[string(m)]}},ultimaMovimentacaoId:string(m)})];
+ }
+ await t.test('entrada em inativo negada',async()=>denied(await commit(movement(positive))));
+ await t.test('saída em inativo negada',async()=>{const w=movement(positive,1,'saida');w[1].update.fields.estoqueAtual=num(9);denied(await commit(w));});
+ await t.test('editar movimento inativo com delta negado',async()=>denied(await commit([update('movimentacoes','inicial_'+positive,{quantidade:num(11)}),update('produtos',positive,{estoqueAtual:num(11),ultimaMovimentacaoId:string('inicial_'+positive)})])));
+ await t.test('editar só observação inativo negado',async()=>denied(await commit([update('movimentacoes','inicial_'+positive,{observacao:string('Teste')})])));
+ const removeInitial=id=>[{delete:path('movimentacoes','inicial_'+id)},update('produtos',id,{estoqueAtual:num(0),quantidadeMovimentacoes:num(0),movimentacaoIds:{arrayValue:{values:[]}},ultimaMovimentacaoId:string('inicial_'+id)})];
+ await t.test('excluir movimento inativo negado',async()=>denied(await commit(removeInitial(positive))));
+ await t.test('leitura histórica de inativo permitida',async()=>ok(await request('GET','/movimentacoes/inicial_'+positive,a.token)));
+ for(const [label,w] of [['autor retocado',update('produtos',positive,{inativadoPor:string(b.uid)})],['data retocada',update('produtos',positive,{},[stamp('inativadoEm')])],['reativar sem limpar auditoria',update('produtos',positive,{status:string('ativo')})]])await t.test('nega '+label,async()=>denied(await commit([w])));
+ await t.test('reativação válida limpa auditoria',async()=>{ok(await commit([active(positive)]));const f=(await request('GET','/produtos/'+positive,a.token)).data.fields;assert.equal(f.inativadoEm.nullValue,null);assert.equal(f.inativadoPor.nullValue,null);});
+ await t.test('RN08 produto ativo bloqueia setor',async()=>denied(await request('DELETE','/setores/'+sa,a.token)));
+ await t.test('delete com histórico nega mesmo incluindo cascade',async()=>denied(await commit([{delete:path('produtos',positive)},{delete:path('movimentacoes','inicial_'+positive)},sectorChange(sa,positive,-1)])));
+ await t.test('excluir último movimento ativo preserva true e continua bloqueando delete',async()=>{ok(await commit(removeInitial(positive)));const f=(await request('GET','/produtos/'+positive,a.token)).data.fields;assert.equal(f.possuiHistorico.booleanValue,true);denied(await commit([{delete:path('produtos',positive)},sectorChange(sa,positive,-1)]));});
+ await t.test('primeiro movimento exige marcador no mesmo commit',async()=>{const w=movement(zero);delete w[1].update.fields.possuiHistorico;w[1].updateMask.fieldPaths=w[1].updateMask.fieldPaths.filter(x=>x!=='possuiHistorico');denied(await commit(w));});
+ await t.test('primeiro movimento false para true atômico',async()=>{ok(await commit(movement(zero)));assert.equal((await request('GET','/produtos/'+zero,a.token)).data.fields.possuiHistorico.booleanValue,true);});
+ const disposable=randomUUID();ok(await commit(creation(disposable,0)));
+ await t.test('delete sem histórico permitido com RN08',async()=>ok(await commit([{delete:path('produtos',disposable)},sectorChange(sa,disposable,-1)])));
+ const disposableInactive=randomUUID();ok(await commit(creation(disposableInactive,0)));ok(await commit([inactive(disposableInactive)]));
+ await t.test('delete inativo sem histórico permitido',async()=>ok(await commit([{delete:path('produtos',disposableInactive)},sectorChange(sa,disposableInactive,-1)])));
+ const legacy=randomUUID(),w=creation(legacy,0);for(const key of ['status','inativadoEm','inativadoPor','possuiHistorico'])delete w[0].update.fields[key];
+ ok(await commit(w,'owner'));
+ await t.test('delete legado sem marcador negado',async()=>denied(await commit([{delete:path('produtos',legacy)},sectorChange(sa,legacy,-1)])));
+ await t.test('legado inativa e reativa sem inventar marcador false',async()=>{ok(await commit([inactive(legacy)]));ok(await commit([active(legacy)]));assert.equal('possuiHistorico' in (await request('GET','/produtos/'+legacy,a.token)).data.fields,false);});
+ await t.test('legado continua movimentável e torna marcador true',async()=>ok(await commit(movement(legacy))));
+ for(const [label,token,id,s] of [['A para B',a.token,other,sb],['B para A',b.token,positive,sa],['anônimo',null,positive,sa]]) {
+  await t.test(label+' nega leitura',async()=>denied(await request('GET','/produtos/'+id,token)));
+  await t.test(label+' nega inativação',async()=>denied(await commit([inactive(id)],token)));
+  await t.test(label+' nega exclusão',async()=>denied(await commit([{delete:path('produtos',id)},sectorChange(s,id,-1)],token)));
+ }
 });

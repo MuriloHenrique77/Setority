@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput } from 'react-native';
 import type { StockScreenProps } from '../../navigation/types';
 import { AuthFormLayout, FormButton, authStyles } from '../../components/AuthFormLayout';
+import { useProdutos } from '../../services/produtos/useProdutos';
+import { produtoAtivo } from '../../utils/cicloProduto';
 import { useSession } from '../../session/SessionProvider';
 import { lerQuantidadeFormulario } from '../../utils/produtos';
 import { normalizarMovimentacao, mensagemErroMovimentacao } from '../../utils/movimentacoes';
@@ -11,7 +13,9 @@ export default function MovimentacaoFormScreen({ route, navigation }: StockScree
   const { produtoId, setor, tipo, movimentacao } = route.params;
   const { estado } = useSession();
   const contexto = estado.status === 'authenticatedReady' ? { uid: estado.conta.uid, estabelecimentoId: estado.perfil.estabelecimentoId } : null;
-  const valido = contexto !== null && contexto.estabelecimentoId === setor.estabelecimentoId;
+  const produtos = useProdutos(setor.id);
+  const produto = produtos.estado.status === 'data' ? produtos.estado.produtos.find(p => p.id === produtoId) : undefined;
+  const valido = contexto !== null && contexto.estabelecimentoId === setor.estabelecimentoId && !!produto && produtoAtivo(produto);
   const [quantidade, setQuantidade] = useState(movimentacao ? String(movimentacao.quantidade) : '');
   const [observacao, setObservacao] = useState(movimentacao?.observacao ?? '');
   const [erro, setErro] = useState<string | null>(null);
@@ -34,7 +38,7 @@ export default function MovimentacaoFormScreen({ route, navigation }: StockScree
   }
   return <AuthFormLayout title={movimentacao ? (tipo === 'entrada' ? 'Editar entrada' : 'Editar saída') : (tipo === 'entrada' ? 'Registrar entrada' : 'Registrar saída')}
     subtitle={movimentacao ? 'É necessária conexão para alterar movimentações. O tipo permanece imutável.' : 'É necessária conexão para registrar esta movimentação. O estoque será validado ao confirmar.'}
-    erro={valido ? erro : 'Este setor não pertence à sessão atual.'}>
+    erro={valido ? erro : produto?.status === 'inativo' ? 'Produto inativo. Reative-o para alterar movimentações.' : produtos.estado.status === 'loading' ? null : 'Produto indisponível nesta sessão.'}>
     <Text style={authStyles.subtitle}>Tipo: {tipo === 'entrada' ? 'Entrada' : 'Saída'}</Text>
     <Text style={authStyles.label}>Quantidade</Text>
     <TextInput accessibilityLabel="Quantidade" value={quantidade} onChangeText={setQuantidade} style={authStyles.input}

@@ -6,3 +6,5 @@ export async function setorPossuiProdutos(_c: ContextoProdutos, _s: string): Pro
 export async function criarProduto(_c: ContextoProdutos, _s: string, _d: DadosNovoProduto): Promise<void> { throw indisponivel(); }
 export async function atualizarProduto(_c: ContextoProdutos, _id: string, _d: DadosEdicaoProduto): Promise<void> { throw indisponivel(); }
 export async function removerProduto(_c: ContextoProdutos, _id: string): Promise<void> { throw indisponivel(); }
+export async function inativarProduto(_c: ContextoProdutos, _id: string): Promise<void> { throw indisponivel(); }
+export async function reativarProduto(_c: ContextoProdutos, _id: string): Promise<void> { throw indisponivel(); }

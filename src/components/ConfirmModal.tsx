@@ -1,4 +1,5 @@
 import React from 'react';
+import { colors, radii, spacing, typography } from '../theme';
 import {
   Modal,
   View,
@@ -10,6 +11,7 @@ import {
 type ConfirmModalProps = {
   visible: boolean;
   busy?: boolean;
+  destructive?: boolean;
   title: string;
   message: string;
   confirmText?: string;
@@ -21,6 +23,7 @@ type ConfirmModalProps = {
 export default function ConfirmModal({
   visible,
   busy = false,
+  destructive = true,
   title,
   message,
   confirmText = 'Excluir',
@@ -52,7 +55,7 @@ export default function ConfirmModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.button, styles.confirmButton]}
+              style={[styles.button, styles.confirmButton, !destructive && { backgroundColor: colors.primary }]}
               activeOpacity={0.8}
               disabled={busy}
               accessibilityState={{ disabled: busy }}
@@ -79,21 +82,21 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 420,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
+    padding: spacing.xl,
   },
 
   title: {
-    fontSize: 20,
+    ...typography.cardTitle,
     fontWeight: '700',
-    color: '#111',
+    color: colors.text,
     marginBottom: 10,
   },
 
   message: {
-    fontSize: 15,
-    color: '#555',
+    ...typography.body,
+    color: colors.textSecondary,
     lineHeight: 22,
   },
 
@@ -107,27 +110,27 @@ const styles = StyleSheet.create({
   button: {
     paddingVertical: 12,
     paddingHorizontal: 16,
-    borderRadius: 10,
+    borderRadius: radii.md,
     minWidth: 100,
     alignItems: 'center',
   },
 
   cancelButton: {
-    backgroundColor: '#ECEFF1',
+    backgroundColor: colors.primarySoft,
   },
 
   cancelButtonText: {
-    color: '#333',
-    fontSize: 14,
+    color: colors.primary,
+    ...typography.label,
     fontWeight: '600',
   },
 
   confirmButton: {
-    backgroundColor: '#D32F2F',
+    backgroundColor: colors.danger,
   },
 
   confirmButtonText: {
-    color: '#FFF',
+    color: colors.surface,
     fontSize: 14,
     fontWeight: '700',
   },

@@ -1,3 +1,35 @@
+# Evolução posterior ao MVP — Etapa 10B
+
+O MVP e a Etapa 10A permanecem registrados abaixo como histórico de decisões. A política atual da 10B substitui RN-07/RF-11 de exclusão destrutiva de histórico por **inativação**. O levantamento original não foi reescrito.
+
+## Ciclo de vida e persistência
+
+Produtos novos têm status ativo, inativadoEm/inativadoPor nulos e possuiHistorico booleano. Inicial zero nasce false; inicial positiva nasce true com a entrada inicial no mesmo batch. A primeira movimentação cria o histórico e grava true na mesma transaction. O marcador é irreversível, inclusive após excluir individualmente todas as movimentações. Não representa saldo nem substitui o histórico como fonte de verdade.
+
+Inativar/reativar usa transaction com leitura atual do produto. Inativação positiva é permitida com aviso de saldo; grava timestamp do servidor e UID autenticado. Reativação limpa ambos os campos. Nenhuma transição altera quantidade inicial, saldo, mínimo, vínculos, registro técnico ou documentos de movimentação. Rules só permitem essas alterações de auditoria junto da transição correspondente.
+
+O serviço, os formulários e as Rules bloqueiam criação, edição e exclusão de movimentações em inativos. Seleção de nova entrada/saída só apresenta ativos. Detalhes e histórico continuam acessíveis. Confirmações usam modal; inativação/reativação usam aparência neutra e exclusão usa confirmação destrutiva. FeedbackProvider informa sucesso/erro sem Alert nativo.
+
+## Exclusão permanente e compatibilidade
+
+Exclusão exige possuiHistorico explicitamente false, inicial/saldo/contagem de movimentos zero e registro vazio. Remove apenas o documento do produto e decrementa atomicamente o contador técnico do setor. Produto com marcador true permanece cadastrado, mesmo se o saldo e o histórico atual estiverem vazios.
+
+Documento antigo sem status é interpretado como ativo. Marcador ausente é preservado como undefined no domínio (não false), para que a ausência seja distinguível: exclusão bloqueada com mensagem conservadora. O produto pode receber movimentações, ser inativado e reativado. A primeira nova movimentação grava true. Não existe migração em massa ou normalização para false. Conversores validam tipos dos campos presentes. Datas de inativação não são passadas às rotas.
+
+O cascade antigo e seu validador foram removidos do serviço e das Rules; nenhum fluxo vigente pode excluir histórico junto com o produto. O registro técnico de até seis IDs foi mantido e renomeado para LIMITE_REGISTRO_MOVIMENTACOES: operações individuais de movimento e deltas ainda dependem dele, incluindo compatibilidade de documentos anteriores. Essa lista não limita a quantidade de movimentações nem autoriza exclusão do produto.
+
+## Catálogo atual e relatórios históricos
+
+A tela de produtos do setor separa Ativos/Inativos; a aba padrão é Ativos, incluindo legados sem status. Home conta produtos ativos, reposições e zerados ativos. Recentes e histórico global preservam movimentos dos dois estados e indicam Inativo.
+
+Relatórios: totais do período, agrupamentos, produtos movimentados e rankings de entrada/saída mantêm inativos com movimentos no período. Reposição e zerados representam estado atual e incluem apenas ativos. **Sem movimentação** representa o catálogo ativo sem entradas/saídas no período, independente do filtro de tipo. Filtros nunca modificam documentos. Inativar não muda totais/rankings históricos.
+
+RN-08 inclui produtos ativos **e inativos**: ambos pertencem ao setor e impedem excluí-lo. Inativação/reativação não decrementam contador. Arquivamento de setores pode ser uma evolução futura, fora desta etapa.
+
+Validação e auditoria: ver docs/VALIDACAO_ETAPA_10B.md e docs/AUDITORIA_RULES_ETAPA_10B.json.
+
+---
+
 # Decisões técnicas do MVP
 
 ## Estado atual — auditoria final da Etapa 9

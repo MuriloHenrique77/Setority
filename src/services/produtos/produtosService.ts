@@ -7,7 +7,8 @@ import { converterProduto } from '../firebase/converters/produto';
 import { inteiroEstoque, normalizarNovoProduto, normalizarEdicaoProduto, ordenarProdutos } from '../../utils/produtos';
 import type { ContextoProdutos, DadosNovoProduto, DadosEdicaoProduto } from '../../utils/produtos';
 import type { Produto } from '../../types/produto.types';
-import { lerRegistroMovimentacoes, validarCascade } from '../../utils/movimentacoes';
+import { lerRegistroMovimentacoes } from '../../utils/movimentacoes';
+import { validarExclusaoPermanente } from '../../utils/cicloProduto';
 
 function validarContexto(contexto: ContextoProdutos) {
   if (obterAuth().currentUser?.uid !== contexto.uid || !contexto.estabelecimentoId) throw new Error('Sessão inválida.');
@@ -43,6 +44,7 @@ export async function criarProduto(contexto: ContextoProdutos, setorId: string, 
   const inicialId = `inicial_${produto.id}`;
   const batch = writeBatch(db);
   batch.set(produto, { id: produto.id, estabelecimentoId: contexto.estabelecimentoId, setorId, ...normalizado,
+    status: 'ativo', inativadoEm: null, inativadoPor: null, possuiHistorico: normalizado.quantidadeInicial > 0,
     estoqueAtual: normalizado.quantidadeInicial, criadoEm: serverTimestamp(), atualizadoEm: serverTimestamp(),
     quantidadeMovimentacoes: normalizado.quantidadeInicial > 0 ? 1 : 0,
     movimentacaoIds: normalizado.quantidadeInicial > 0 ? [inicialId] : [],
@@ -72,9 +74,6 @@ export async function atualizarProduto(contexto: ContextoProdutos, id: string, d
 export async function removerProduto(contexto: ContextoProdutos, id: string): Promise<void> {
   validarContexto(contexto);
   const db = obterFirestore();
-  // Consultar todo o histórico do próprio estabelecimento; nenhuma exclusão parcial.
-  const movimentos = await getDocsFromServer(query(collection(db, COLLECTIONS.movimentacoes),
-    where('estabelecimentoId', '==', contexto.estabelecimentoId), where('produtoId', '==', id)));
   await runTransaction(db, async transacao => {
     validarContexto(contexto);
     const referencia = doc(db, COLLECTIONS.produtos, id);
@@ -82,14 +81,32 @@ export async function removerProduto(contexto: ContextoProdutos, id: string): Pr
     const dados = snapshot.data();
     if (!snapshot.exists() || dados?.estabelecimentoId !== contexto.estabelecimentoId) throw new Error('Produto não encontrado nesta sessão.');
     const produto = converterProduto(dados, id, contexto.estabelecimentoId, dados.setorId);
-    validarCascade(lerRegistroMovimentacoes(dados, id), movimentos.docs.map(d => d.id));
+    validarExclusaoPermanente(produto);
+    if (lerRegistroMovimentacoes(dados, id).quantidadeMovimentacoes !== 0 || produto.estoqueAtual !== 0 || produto.quantidadeInicial !== 0) throw new Error('Dados inconsistentes. Exclusão cancelada para preservar o histórico.');
     const setorRef = doc(db, COLLECTIONS.setores, produto.setorId);
     const setor = await transacao.get(setorRef);
     const contagem = setor.data()?.quantidadeProdutos;
     if (!setor.exists() || !inteiroEstoque(contagem) || contagem < 1) throw new Error('Dados inconsistentes. Exclusão cancelada para preservar o histórico.');
     validarContexto(contexto);
-    for (const movimento of movimentos.docs) transacao.delete(doc(db, COLLECTIONS.movimentacoes, movimento.id));
     transacao.delete(referencia);
     transacao.update(setorRef, { quantidadeProdutos: contagem - 1, ultimaOperacaoProdutoId: id, atualizadoEm: serverTimestamp() });
   });
 }
+
+async function alterarStatus(contexto: ContextoProdutos, id: string, status: Produto['status']): Promise<void> {
+  validarContexto(contexto);
+  const db = obterFirestore();
+  const referencia = doc(db, COLLECTIONS.produtos, id);
+  await runTransaction(db, async t => {
+    validarContexto(contexto);
+    const snapshot = await t.get(referencia), dados = snapshot.data();
+    if (!snapshot.exists() || dados?.estabelecimentoId !== contexto.estabelecimentoId) throw new Error('Produto não encontrado nesta sessão.');
+    const produto = converterProduto(dados, id, contexto.estabelecimentoId, dados.setorId);
+    if (produto.status === status) throw new Error(status === 'ativo' ? 'Este produto já está ativo.' : 'Este produto já está inativo.');
+    validarContexto(contexto);
+    t.update(referencia, { status, inativadoEm: status === 'inativo' ? serverTimestamp() : null,
+      inativadoPor: status === 'inativo' ? contexto.uid : null, atualizadoEm: serverTimestamp() });
+  });
+}
+export function inativarProduto(c: ContextoProdutos, id: string): Promise<void> { return alterarStatus(c, id, 'inativo'); }
+export function reativarProduto(c: ContextoProdutos, id: string): Promise<void> { return alterarStatus(c, id, 'ativo'); }

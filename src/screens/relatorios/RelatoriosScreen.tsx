@@ -1,4 +1,5 @@
 import { dadosDeRota } from '../../navigation/dadosDeRota';
+import { produtoAtivo } from '../../utils/cicloProduto';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -78,12 +79,12 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
         data: resultado.maioresEntradas.map((r,i) => produtoLinha(r.produto, 'entrada:', (i + 1) + 'º • Total de entradas: ' + numero(r.quantidade))) },
       { titulo: 'Maior saída', descricao: 'Total de saídas por produto, do maior para o menor. Empates: nome e ID.', vazio: 'Nenhuma saída para os filtros selecionados.',
         data: resultado.maioresSaidas.map((r,i) => produtoLinha(r.produto, 'saida:', (i + 1) + 'º • Total de saídas: ' + numero(r.quantidade))) },
-      { titulo: 'Produtos sem movimentação', descricao: 'Sem entrada nem saída no período. Respeita setor e produto; independe do filtro de tipo.',
-        vazio: produtos.some(p => !produtoId || p.id === produtoId) ? 'Todos os produtos tiveram movimentação no período.' : 'Nenhum produto cadastrado para esta seleção.',
+      { titulo: 'Produtos sem movimentação', descricao: 'Produtos ativos sem entrada nem saída no período. Respeita setor e produto; independe do filtro de tipo.',
+        vazio: produtos.some(p => produtoAtivo(p) && (!produtoId || p.id === produtoId)) ? 'Todos os produtos ativos tiveram movimentação no período.' : 'Nenhum produto ativo para esta seleção.',
         data: resultado.semMovimentacao.map(p => produtoLinha(p, 'sem:', 'Estoque atual: ' + numero(p.estoqueAtual))) },
-      { titulo: 'Produtos para reposição', descricao: 'Estoque atual menor ou igual ao mínimo definido. Período e tipo não se aplicam.', vazio: 'Nenhum produto precisa de reposição.',
+      { titulo: 'Produtos para reposição', descricao: 'Produtos ativos com estoque atual menor ou igual ao mínimo definido. Período e tipo não se aplicam.', vazio: 'Nenhum produto ativo precisa de reposição.',
         data: resultado.reposicao.map(p => produtoLinha(p, 'reposicao:', 'Estoque atual: ' + numero(p.estoqueAtual) + ' • Mínimo: ' + numero(p.estoqueMinimo ?? 0))) },
-      { titulo: 'Estoque zerado', descricao: 'Estado atual. Respeita setor e produto; período e tipo não se aplicam.', vazio: 'Nenhum produto com estoque zerado.',
+      { titulo: 'Estoque zerado', descricao: 'Estado atual dos produtos ativos. Respeita setor e produto; período e tipo não se aplicam.', vazio: 'Nenhum produto ativo com estoque zerado.',
         data: resultado.zerados.map(p => produtoLinha(p, 'zero:', 'Estoque atual: 0')) },
       { titulo: 'Movimentações do período', descricao: 'Mais recentes primeiro, com todos os filtros aplicados.', vazio: 'Nenhuma movimentação encontrada para os filtros selecionados.',
         data: resultado.movimentos.map(registro => ({ tipo: 'movimento', registro, id: 'movimento:' + registro.movimento.id })) },

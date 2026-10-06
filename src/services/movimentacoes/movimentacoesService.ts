@@ -8,6 +8,7 @@ import { normalizarMovimentacao, calcularNovoEstoque, lerRegistroMovimentacoes, 
 import type { DadosMovimentacao } from '../../utils/movimentacoes';
 import type { ContextoProdutos } from '../../utils/produtos';
 import type { Movimentacao, TipoMovimentacao } from '../../types/movimentacao.types';
+import { validarProdutoAtivo } from '../../utils/cicloProduto';
 
 function validarContexto(c: ContextoProdutos) {
   if (obterAuth().currentUser?.uid !== c.uid || !c.estabelecimentoId) throw new Error('Sessão inválida.');
@@ -40,13 +41,14 @@ async function registrar(c: ContextoProdutos, produtoId: string, setorId: string
     const dadosProduto = snapshot.data();
     if (!dadosProduto) throw new Error('Produto não encontrado.');
     const produto = converterProduto(dadosProduto, produtoId, c.estabelecimentoId, setorId);
+    validarProdutoAtivo(produto);
     const quantidade = normalizarMovimentacao(normalizado).quantidade;
     const estoqueAtual = calcularNovoEstoque(produto.estoqueAtual, tipo, quantidade);
     const registro = acrescentarMovimentacao(lerRegistroMovimentacoes(dadosProduto, produtoId), movimentoRef.id);
     validarContexto(c);
     t.set(movimentoRef, { id: movimentoRef.id, estabelecimentoId: c.estabelecimentoId, produtoId, setorId: produto.setorId,
       tipo, ...normalizado, criadoPor: c.uid, criadoEm: serverTimestamp() });
-    t.update(produtoRef, { estoqueAtual, atualizadoEm: serverTimestamp(), ...registro });
+    t.update(produtoRef, { estoqueAtual, possuiHistorico: true, atualizadoEm: serverTimestamp(), ...registro });
   });
 }
 export function registrarEntrada(c: ContextoProdutos, produtoId: string, setorId: string, d: DadosMovimentacao): Promise<void> { return registrar(c, produtoId, setorId, 'entrada', d); }
@@ -65,6 +67,7 @@ async function alterar(c: ContextoProdutos, produtoId: string, setorId: string, 
     const dadosProduto = produtoSnapshot.data();
     if (!produtoSnapshot.exists() || !dadosProduto) throw new Error('Produto não encontrado.');
     const produto = converterProduto(dadosProduto, produtoId, c.estabelecimentoId, movimento.setorId);
+    validarProdutoAtivo(produto);
     validarContexto(c);
     if (normalizado) {
       const estoqueAtual = calcularEstoqueEdicao(produto.estoqueAtual, movimento.tipo, movimento.quantidade, normalizado.quantidade);

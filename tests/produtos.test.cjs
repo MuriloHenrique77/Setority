@@ -1,90 +1,6 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const vm = require('node:vm');
-const ts = require('typescript');
-class Timestamp { constructor(date) { this.date = new Date(date); } toDate() { return new Date(this.date); } }
-function ambiente() {
-  const docs = new Map();
-  const commits = [];
-  const consultas = [];
-  const auth = { currentUser: { uid: 'a' } };
-  const falhas = { offline: false, reavaliar: null };
-  let sequence = 0;
-  const agora = new Timestamp('2026-10-04T12:00:00Z');
-  const ref = (collection, id) => ({ path: `${collection}/${id}`, id });
-  const snapshot = r => ({ id: r.id, exists: () => docs.has(r.path), data: () => docs.get(r.path) });
-  const sdk = {
-    Timestamp,
-    collection: (_db, name) => ({ name }),
-    doc: (dbOrCollection, name, id) => id !== undefined ? ref(name, id) : ref(dbOrCollection.name, `p${++sequence}`),
-    query: (collection, ...filters) => ({ collection, filters }),
-    where: (field, operator, value) => ({ field, operator, value }), limit: size => ({ size }),
-    serverTimestamp: () => agora, deleteField: () => 'DELETE', increment: value => ({ increment: value }),
-    getDocsFromServer: async q => {
-      consultas.push(q);
-      const resultado = [...docs].filter(([p,d]) => p.startsWith(q.collection.name + '/') && q.filters.every(f => !f.field || d[f.field] === f.value))
-        .map(([p]) => snapshot(ref(q.collection.name, p.split('/')[1])));
-      const size = q.filters.find(f => f.size)?.size;
-      const lista = size ? resultado.slice(0, size) : resultado;
-      return { docs: lista, empty: lista.length === 0 };
-    },
-    writeBatch: () => batch(),
-    runTransaction: async (_db, fn) => {
-      if (falhas.offline) throw Object.assign(new Error('Servidor indisponível'),{code:'firestore/unavailable'});
-      let b = batch(); b.get = async r => snapshot(r); await fn(b);
-      if (falhas.reavaliar) { const mudar=falhas.reavaliar; falhas.reavaliar=null; mudar(); b=batch(); b.get=async r=>snapshot(r); await fn(b); }
-      await b.commit();
-    },
-    updateDoc: async (r,d) => { const b = batch(); b.update(r,d); await b.commit(); },
-    onSnapshot: (q,_options,receive) => {
-      consultas.push(q);
-      const ds = [...docs].filter(([p,d]) => p.startsWith(q.collection.name + '/') && q.filters.every(f => d[f.field] === f.value))
-        .map(([p,d]) => ({ id:p.split('/')[1], data:()=>d, metadata:{hasPendingWrites:false} }));
-      receive({docs:ds}); return () => {};
-    },
-  };
-  function batch() {
-    const writes = [];
-    return {
-      set: (r,d) => writes.push({type:'set',r,d}), update: (r,d) => writes.push({type:'update',r,d}), delete: r => writes.push({type:'delete',r}),
-      commit: async () => {
-        const next = new Map(docs);
-        for (const w of writes) {
-          if (w.type === 'delete') { next.delete(w.r.path); continue; }
-          if (w.type === 'update' && !next.has(w.r.path)) throw new Error('Documento ausente');
-          const result = w.type === 'set' ? {...w.d} : {...next.get(w.r.path)};
-          for (const [k,v] of Object.entries(w.d)) {
-            if (v === 'DELETE') delete result[k];
-            else if (v && typeof v === 'object' && 'increment' in v) result[k] = (result[k] ?? 0) + v.increment;
-            else result[k] = v;
-          }
-          next.set(w.r.path,result);
-        }
-        docs.clear(); for (const [k,v] of next) docs.set(k,v); commits.push(writes);
-      },
-    };
-  }
-  const cache = new Map();
-  function carregar(arquivo) {
-    arquivo = path.resolve(arquivo);
-    if (cache.has(arquivo)) return cache.get(arquivo);
-    const codigo = ts.transpileModule(fs.readFileSync(arquivo,'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
-    const modulo = {exports:{}};
-    const importar = nome => {
-      if (nome === '@react-native-firebase/firestore') return sdk;
-      if (nome.endsWith('/firebase/auth')) return {obterAuth:()=>auth};
-      if (nome.endsWith('/firebase/firestore')) return {obterFirestore:()=>({})};
-      return carregar(path.resolve(path.dirname(arquivo),nome+'.ts'));
-    };
-    vm.runInThisContext('(function(require,module,exports){'+codigo+'\n})')(importar,modulo,modulo.exports);
-    cache.set(arquivo,modulo.exports); return modulo.exports;
-  }
-  docs.set('setores/s1',{id:'s1',estabelecimentoId:'est_a',nome:'Setor',criadoEm:agora});
-  return {docs,commits,consultas,auth,agora,falhas, carregar, movimentos:carregar('src/services/movimentacoes/movimentacoesService.ts'), produtos:carregar('src/services/produtos/produtosService.ts'), setores:carregar('src/services/setores/setoresService.ts')};
-}
-const contexto = {uid:'a',estabelecimentoId:'est_a'};
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const {ambiente,contexto}=require('./helpers/produtos-ambiente.cjs');
 test('erro offline Android encapsulado é traduzido sem ocultar outros erros desconhecidos', () => {
   const a=ambiente(); const {mensagemErroMovimentacao}=a.carregar('src/utils/movimentacoes.ts');
   assert.equal(mensagemErroMovimentacao(Object.assign(new Error('[firestore/unknown] UNAVAILABLE: Unable to resolve host firestore.googleapis.com'),{code:'firestore/unknown'})), 'É necessária conexão para registrar esta movimentação.');
@@ -119,16 +35,16 @@ test('RN08 consulta Produtos Firestore e bloqueia setor com produto',async()=>{
   assert.deepEqual(a.consultas.at(-1).filters.slice(0,2).map(f=>[f.field,f.value]),[['estabelecimentoId','est_a'],['setorId','s1']]);
   assert.equal(a.docs.has('setores/s1'),true);
 });
-test('cascade remove inicial e produto antes de permitir remover setor',async()=>{
+test('histórico inicial bloqueia exclusão e mantém RN08',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
-  await a.produtos.removerProduto(contexto,'p1');
-  assert.equal(a.docs.has('produtos/p1'),false); assert.equal(a.docs.has('movimentacoes/inicial_p1'),false);
-  await a.setores.removerSetor(contexto,'s1'); assert.equal(a.docs.has('setores/s1'),false);
+  await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/);
+  assert.equal(a.docs.has('produtos/p1'),true); assert.equal(a.docs.has('movimentacoes/inicial_p1'),true);
+  await assert.rejects(a.setores.removerSetor(contexto,'s1'),/possui produtos/);
 });
 test('histórico inesperado impede cascade parcial e preserva todos os documentos',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
   a.docs.set('movimentacoes/externa',{estabelecimentoId:'est_a',produtoId:'p1'});
-  const antes=[...a.docs]; await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/Não foi possível confirmar a exclusão completa/);
+  const antes=[...a.docs]; await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/);
   assert.deepEqual([...a.docs],antes);
 });
 test('listener lista apenas estabelecimento e setor atuais; troca de conta invalida contexto',async()=>{
@@ -203,14 +119,14 @@ test('histórico consulta estabelecimento+produto, converte inicial legado e nã
   assert.equal(lista.length,1); assert.equal(lista[0].id,'inicial_p1'); assert.equal(lista[0].criadoEm instanceof Date,true);
   assert.deepEqual(a.consultas.at(-1).filters.map(f=>f.field),['estabelecimentoId','produtoId']);
 });
-test('cascade remove todas as movimentações dentro do limite e preserva acima dele',async()=>{
+test('preserva histórico de seis movimentos e acima do registro técnico',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
-  const max=a.carregar('src/utils/movimentacoes.ts').LIMITE_CASCADE_MOVIMENTACOES;
+  const max=a.carregar('src/utils/movimentacoes.ts').LIMITE_REGISTRO_MOVIMENTACOES;
   for(let i=1;i<max;i++) await a.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
-  await a.produtos.removerProduto(contexto,'p1'); assert.equal([...a.docs.keys()].some(k=>k.startsWith('movimentacoes/')),false);
+  await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/); assert.equal([...a.docs.keys()].filter(k=>k.startsWith('movimentacoes/')).length,max);
   const b=ambiente(); await b.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
   for(let i=1;i<=max;i++) await b.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
-  const antes=[...b.docs]; await assert.rejects(b.produtos.removerProduto(contexto,'p1'),/histórico extenso/);
+  const antes=[...b.docs]; await assert.rejects(b.produtos.removerProduto(contexto,'p1'),/possui histórico/);
   assert.deepEqual([...b.docs],antes);
 });
 test('movimentos exigem quantidade positiva segura e rejeitam vínculos incorretos',async()=>{
@@ -254,7 +170,7 @@ test('7B observação sem escrita no produto; exclusões e inicial seguem mesmas
  await a.movimentos.excluirMovimentacao(contexto,'p1','s1','p2'); assert.equal(a.docs.get('produtos/p1').estoqueAtual,10);
  await a.movimentos.editarMovimentacao(contexto,'p1','s1','inicial_p1',{quantidade:8}); assert.equal(a.docs.get('produtos/p1').quantidadeInicial,10);
  await a.movimentos.excluirMovimentacao(contexto,'p1','s1','inicial_p1'); assert.equal(a.docs.get('produtos/p1').estoqueAtual,0);
- await a.produtos.removerProduto(contexto,'p1'); assert.equal(a.docs.has('produtos/p1'),false);
+ await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/); assert.equal(a.docs.get('produtos/p1').possuiHistorico,true);
 });
 test('7B offline, inválidos e entrada que geraria negativo não têm efeito',async()=>{
  const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
@@ -285,7 +201,7 @@ test('7B excluir entrada relê saldo quando uma saída concorrente consome estoq
  await assert.rejects(a.movimentos.excluirMovimentacao(contexto,'p1','s1','inicial_p1'),/negativo/);assert.equal(a.docs.has('movimentacoes/inicial_p1'),true);
 });
 
-test('7B registro parcial preserva cascade seguro após exclusões acima de seis',async()=>{
+test('7B registro parcial e marcador impedem cascade após exclusões acima de seis',async()=>{
  const a=ambiente();await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
  for(let i=0;i<9;i++)await a.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
  await a.movimentos.excluirMovimentacao(contexto,'p1','s1','inicial_p1');
@@ -293,5 +209,5 @@ test('7B registro parcial preserva cascade seguro após exclusões acima de seis
  await a.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
  for(const id of ['p7','p8','p9','p10'])await a.movimentos.excluirMovimentacao(contexto,'p1','s1',id);
  assert.equal(a.docs.get('produtos/p1').quantidadeMovimentacoes,6);assert.equal(a.docs.get('produtos/p1').movimentacaoIds.length,6);
- await a.produtos.removerProduto(contexto,'p1');assert.equal([...a.docs.keys()].some(k=>k.startsWith('movimentacoes/')),false);
+ const antes=[...a.docs];await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/);assert.deepEqual([...a.docs],antes);
 });

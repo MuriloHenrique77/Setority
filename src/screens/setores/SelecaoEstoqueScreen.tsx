@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StockScreenProps } from '../../navigation/types';
 import { useVisaoEstoque } from '../../services/visaoEstoque/useVisaoEstoque';
+import { produtoAtivo } from '../../utils/cicloProduto';
 import { dadosDeRota } from '../../navigation/dadosDeRota';
 import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 import { AppScreen } from '../../components/ui/AppScreen';
@@ -17,7 +18,7 @@ export default function SelecaoEstoqueScreen({ navigation, route }: StockScreenP
   const dados = estado.status === 'data' ? estado.dados : undefined;
   const setores = useMemo(() => new Map(dados?.setores.map(s => [s.id, s])), [dados]);
   const produtos = useMemo(() => new Map(dados?.produtos.map(p => [p.id, p])), [dados]);
-  const itens = useMemo(() => (acao === 'produto' ? dados?.setores ?? [] : dados?.produtos ?? [])
+  const itens = useMemo(() => (acao === 'produto' ? dados?.setores ?? [] : dados?.produtos.filter(produtoAtivo) ?? [])
     .filter(item => item.estabelecimentoId === estabelecimentoId && item.nome.toLocaleLowerCase('pt-BR').includes(busca.trim().toLocaleLowerCase('pt-BR')))
     .slice().sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR')), [acao, dados, estabelecimentoId, busca]);
   return <AppScreen scroll={false}><FlatList data={itens} keyExtractor={item => item.id} keyboardShouldPersistTaps="handled" contentContainerStyle={styles.list}
@@ -35,8 +36,8 @@ export default function SelecaoEstoqueScreen({ navigation, route }: StockScreenP
         {produto && acao !== 'produto' ? <Text style={styles.caption}>{setor.nome} • Estoque: {produto.estoqueAtual}</Text> : null}</Pressable>;
     }}
     ListEmptyComponent={estado.status === 'loading' ? <LoadingState /> : estado.status === 'error' ? <ErrorState message={estado.mensagem} retry={tentarNovamente} />
-      : <EmptyState title={busca.trim() ? 'Nenhum resultado' : acao === 'produto' ? 'Cadastre um setor primeiro' : 'Nenhum produto cadastrado'}
-        message={busca.trim() ? 'Experimente buscar outro nome.' : 'Abra Estoque para organizar seus setores e produtos.'}
+      : <EmptyState title={busca.trim() ? 'Nenhum resultado' : acao === 'produto' ? 'Cadastre um setor primeiro' : 'Nenhum produto ativo'}
+        message={busca.trim() ? 'Experimente buscar outro nome.' : acao === 'produto' ? 'Abra Estoque para organizar seus setores.' : 'Cadastre ou reative um produto em Estoque para registrar movimentações.'}
         action="Abrir setores" onAction={() => navigation.navigate('Setores')} />} />
   </AppScreen>;
 }
