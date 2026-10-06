@@ -1,22 +1,23 @@
 import React from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { colors, spacing, radii, typography, touchTarget } from '../theme';
 
 export const authStyles = StyleSheet.create({
-  area: { flex: 1, backgroundColor: '#F5F5F5' },
-  content: { flexGrow: 1, padding: 20, paddingBottom: 32 },
-  title: { fontSize: 28, fontWeight: '700', color: '#111', marginBottom: 8 },
-  subtitle: { fontSize: 15, lineHeight: 22, color: '#555', marginBottom: 24 },
-  label: { fontSize: 15, fontWeight: '600', color: '#222', marginBottom: 8 },
-  input: { backgroundColor: '#FFF', borderColor: '#DDD', borderWidth: 1, borderRadius: 12,
-    paddingHorizontal: 14, paddingVertical: 14, fontSize: 16, color: '#111', marginBottom: 18, minHeight: 48 },
-  button: { backgroundColor: '#1E88E5', borderRadius: 12, minHeight: 48, padding: 15,
-    alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  area: { flex: 1, backgroundColor: colors.background },
+  content: { flexGrow: 1, padding: spacing.xl, paddingBottom: spacing.xxxl },
+  title: { ...typography.title, color: colors.text, marginBottom: spacing.sm },
+  subtitle: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.xxl },
+  label: { ...typography.label, color: colors.text, marginBottom: spacing.sm },
+  input: { ...typography.body, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.md,
+    paddingHorizontal: spacing.lg, paddingVertical: spacing.md, color: colors.text, marginBottom: spacing.lg, minHeight: touchTarget },
+  button: { backgroundColor: colors.primary, borderRadius: radii.md, minHeight: touchTarget, padding: spacing.lg,
+    alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
   disabled: { opacity: 0.55 },
-  buttonText: { color: '#FFF', fontSize: 16, fontWeight: '700' },
-  link: { minHeight: 48, justifyContent: 'center', alignItems: 'center', padding: 12 },
-  linkText: { color: '#1565C0', fontSize: 16, fontWeight: '600' },
-  error: { color: '#A31818', fontSize: 15, lineHeight: 22, marginBottom: 16 },
+  buttonText: { ...typography.label, color: colors.surface },
+  link: { minHeight: touchTarget, justifyContent: 'center', alignItems: 'center', padding: spacing.md },
+  linkText: { ...typography.label, color: colors.primary },
+  error: { ...typography.body, color: colors.danger, marginBottom: spacing.lg },
 });
 
 export function AuthFormLayout({ title, subtitle, erro, children }: React.PropsWithChildren<{

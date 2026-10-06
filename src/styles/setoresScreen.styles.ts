@@ -1,40 +1,42 @@
 import { StyleSheet } from 'react-native';
+import { colors, fonts, spacing, radii, touchTarget } from '../theme';
 
 export const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
+    backgroundColor: colors.background,
   },
 
   container: {
     flex: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingTop: 12,
   },
 
   header: {
-    marginBottom: 20,
+    marginBottom: spacing.xl,
   },
 
   title: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: 24,
+    fontFamily: fonts.semibold,
+    color: colors.text,
   },
 
   subtitle: {
     marginTop: 6,
     fontSize: 15,
-    color: '#666',
+    color: colors.textSecondary,
     lineHeight: 22,
   },
 
   newButton: {
-    backgroundColor: '#1E88E5',
-    borderRadius: 12,
+    minHeight: touchTarget,
+    backgroundColor: colors.primary,
+    borderRadius: radii.md,
     paddingVertical: 14,
     paddingHorizontal: 16,
-    marginBottom: 20,
+    marginBottom: spacing.xl,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -42,13 +44,13 @@ export const styles = StyleSheet.create({
   },
 
   newButtonText: {
-    color: '#FFF',
+    color: colors.surface,
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 
   listContent: {
-    paddingBottom: 20,
+    paddingBottom: spacing.xl,
   },
 
   emptyListContent: {
@@ -56,11 +58,11 @@ export const styles = StyleSheet.create({
   },
 
   card: {
-    backgroundColor: '#FFF',
-    borderRadius: 14,
+    backgroundColor: colors.surface,
+    borderRadius: radii.lg,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#E5E5E5',
+    borderColor: colors.border,
     flexDirection: 'row',
     alignItems: 'center',
     overflow: 'hidden',
@@ -77,7 +79,7 @@ export const styles = StyleSheet.create({
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#E3F2FD',
+    backgroundColor: colors.primarySoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -89,14 +91,14 @@ export const styles = StyleSheet.create({
 
   cardTitle: {
     fontSize: 17,
-    fontWeight: '700',
-    color: '#111',
+    fontFamily: fonts.semibold,
+    color: colors.text,
   },
 
   cardDescription: {
     marginTop: 4,
     fontSize: 14,
-    color: '#666',
+    color: colors.textSecondary,
   },
 
   actionsContainer: {
@@ -107,8 +109,8 @@ export const styles = StyleSheet.create({
   },
 
   actionButton: {
-    minWidth: 48,
-    minHeight: 48,
+    minWidth: touchTarget,
+    minHeight: touchTarget,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 10,
@@ -116,7 +118,7 @@ export const styles = StyleSheet.create({
   },
 
   retryButton: {
-    minHeight: 48,
+    minHeight: touchTarget,
     justifyContent: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
@@ -133,30 +135,31 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     marginTop: 16,
     fontSize: 22,
-    fontWeight: '700',
-    color: '#222',
+    fontFamily: fonts.semibold,
+    color: colors.text,
     textAlign: 'center',
   },
 
   emptyText: {
     marginTop: 8,
     fontSize: 15,
-    color: '#666',
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },
 
   emptyButton: {
+    minHeight: touchTarget,
     marginTop: 20,
-    backgroundColor: '#1E88E5',
+    backgroundColor: colors.primary,
     paddingVertical: 12,
     paddingHorizontal: 18,
     borderRadius: 10,
   },
 
   emptyButtonText: {
-    color: '#FFF',
+    color: colors.surface,
     fontSize: 15,
-    fontWeight: '600',
+    fontFamily: fonts.semibold,
   },
 });

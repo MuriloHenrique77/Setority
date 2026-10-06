@@ -1,6 +1,7 @@
 import type { StockScreenProps } from '../../navigation/types';
 import React, { useEffect, useRef, useState } from 'react';
-import { Text, TextInput, Alert } from 'react-native';
+import { Text, TextInput } from 'react-native';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { AuthFormLayout, FormButton, authStyles } from '../../components/AuthFormLayout';
 import { criarSetor, atualizarSetor } from '../../services/setores/setoresService';
 import { normalizarDadosSetor, mensagemErroSetores } from '../../utils/setores';
@@ -8,6 +9,7 @@ import { useSession } from '../../session/SessionProvider';
 
 export default function SetorFormScreen({ navigation, route }: StockScreenProps<'SetorForm'>) {
   const setor = route.params?.setor;
+  const feedback = useFeedback();
   const { estado } = useSession();
   const contexto = estado.status === 'authenticatedReady'
     ? { uid: estado.conta.uid, estabelecimentoId: estado.perfil.estabelecimentoId } : null;
@@ -32,7 +34,7 @@ export default function SetorFormScreen({ navigation, route }: StockScreenProps<
       if (setor) await atualizarSetor(contexto, setor.id, dados);
       else await criarSetor(contexto, dados);
       if (!ativo.current) return;
-      Alert.alert('Sucesso', setor ? 'Setor atualizado com sucesso!' : 'Setor criado com sucesso!');
+      feedback(setor ? 'Setor atualizado com sucesso.' : 'Setor criado com sucesso.');
       navigation.goBack();
     } catch (e) { if (ativo.current) setErro(mensagemErroSetores(e)); }
     finally { ocupado.current = false; if (ativo.current) setSalvando(false); }

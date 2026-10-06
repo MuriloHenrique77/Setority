@@ -7,15 +7,16 @@ import ProdutoDetalhesScreen from '../screens/setores/ProdutoDetalhesScreen';
 import MovimentacaoFormScreen from '../screens/setores/MovimentacaoFormScreen';
 import type { StockStackParamList } from './types';
 import LogoutButton from '../components/LogoutButton';
-import RelatoriosScreen from '../screens/relatorios/RelatoriosScreen';
+import SelecaoEstoqueScreen from '../screens/setores/SelecaoEstoqueScreen';
+import { appHeaderOptions } from '../theme/navigation';
 
 const Stack = createStackNavigator<StockStackParamList>();
 
 export default function StockNavigator() {
   return (
-    <Stack.Navigator initialRouteName="Setores" screenOptions={{ headerRight: () => <LogoutButton /> }}>
+    <Stack.Navigator initialRouteName="Setores" screenOptions={{ ...appHeaderOptions, headerRight: () => <LogoutButton /> }}>
       <Stack.Screen name="Setores" component={SetoresScreen} options={{ title: 'Setores' }} />
-      <Stack.Screen name="Relatorios" component={RelatoriosScreen} options={{ title: 'Relatórios' }} />
+      <Stack.Screen name="SelecaoEstoque" component={SelecaoEstoqueScreen} options={{ title: 'Selecionar' }} />
       <Stack.Screen
         name="SetorForm"
         component={SetorFormScreen}

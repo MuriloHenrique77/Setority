@@ -2,7 +2,8 @@ import { dadosDeRota } from '../../navigation/dadosDeRota';
 import React, { memo, useCallback, useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, SectionList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import type { StockScreenProps } from '../../navigation/types';
+import type { AuthenticatedTabParamList } from '../../navigation/types';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { Produto } from '../../types/produto.types';
 import type { TipoMovimentacao } from '../../types/movimentacao.types';
 import type { MovimentoRelatorio } from '../../types/relatorio.types';
@@ -41,7 +42,7 @@ const LinhaResultado = memo(function LinhaResultado({ item, abrir }: { item: Lin
   </View>;
 });
 
-export default function RelatoriosScreen({ navigation }: StockScreenProps<'Relatorios'>) {
+export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<AuthenticatedTabParamList, 'Relatorios'>) {
   const [padrao] = useState(periodoPadrao);
   const [inicial, setInicial] = useState(padrao.inicial), [final, setFinal] = useState(padrao.final);
   const [periodo, setPeriodo] = useState(() => construirIntervaloRelatorio(padrao.inicial, padrao.final));
@@ -62,7 +63,7 @@ export default function RelatoriosScreen({ navigation }: StockScreenProps<'Relat
   const abrir = useCallback((produto: Produto) => {
     const setor = dados?.setores.find(s => s.id === produto.setorId);
     if (setor && produto.estabelecimentoId === estabelecimentoId && setor.estabelecimentoId === estabelecimentoId) {
-      navigation.navigate('ProdutoDetalhes', { setor: dadosDeRota(setor), produtoId: produto.id });
+      navigation.navigate('Estoque', { screen: 'ProdutoDetalhes', params: { setor: dadosDeRota(setor), produtoId: produto.id }, initial: false });
     }
   }, [navigation, dados, estabelecimentoId]);
   const renderItem = useCallback(({ item }: { item: Linha }) => <LinhaResultado item={item} abrir={abrir} />, [abrir]);

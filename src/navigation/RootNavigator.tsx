@@ -1,7 +1,8 @@
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSession } from '../session/SessionProvider';
 import AuthNavigator from './AuthNavigator';
-import StockNavigator from './StockNavigator';
+import AuthenticatedNavigator from './AuthenticatedNavigator';
+import { appHeaderOptions } from '../theme/navigation';
 import CriarEstabelecimentoScreen from '../screens/auth/CriarEstabelecimentoScreen';
 import LoadingScreen from '../screens/auth/LoadingScreen';
 import LogoutButton from '../components/LogoutButton';
@@ -23,11 +24,11 @@ export default function RootNavigator() {
   const { estado } = useSession();
   const chave = estado.status === 'authenticatedReady'
     ? `${estado.status}:${estado.conta.uid}:${estado.perfil.estabelecimentoId}` : estado.status;
-  return <Stack.Navigator key={chave}>
+  return <Stack.Navigator key={chave} screenOptions={appHeaderOptions}>
     {estado.status === 'loading' ? <Stack.Screen name="Loading" component={LoadingScreen} options={{ title: 'Controle de estoque' }} />
       : estado.status === 'unauthenticated' ? <Stack.Screen name="Auth" component={AuthNavigator} options={{ headerShown: false }} />
       : estado.status === 'authenticatedWithoutProfile' ? <Stack.Screen name="Onboarding" component={CriarEstabelecimentoScreen} options={{ title: 'Configurar estabelecimento', headerRight: () => <LogoutButton /> }} />
-      : estado.status === 'authenticatedReady' ? <Stack.Screen name="Stock" component={StockNavigator} options={{ headerShown: false }} />
+      : estado.status === 'authenticatedReady' ? <Stack.Screen name="Stock" component={AuthenticatedNavigator} options={{ headerShown: false }} />
       : <Stack.Screen name="Error" component={SessionErrorScreen} options={{ title: 'Sessão' }} />}
   </Stack.Navigator>;
 }

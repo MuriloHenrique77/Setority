@@ -2,6 +2,12 @@
 
 Aplicativo mobile com React Native, Expo SDK 54 e TypeScript.
 
+O fluxo autenticado abre em **Início**, com resumo do estoque, atenção,
+movimentações recentes e atalhos aos formulários existentes. A navegação inferior
+oferece **Início**, **Estoque**, **Movimentações** e **Relatórios**. A identidade
+visual usa Inter e tokens centralizados em `src/theme`. Consulte
+[docs/VALIDACAO_ETAPA_10A.md](docs/VALIDACAO_ETAPA_10A.md).
+
 O MVP possui Firebase Authentication, onboarding de estabelecimento e CRUD
 de setores/produtos no Firestore, com React Navigation. O cadastro cria
 atomicamente a entrada inicial quando a quantidade é positiva. Permite registrar,
@@ -35,7 +41,7 @@ Validações locais:
 ```powershell
 npx.cmd tsc --noEmit
 npx.cmd expo-doctor
-node --test tests/auth.test.cjs tests/recuperacao-senha.test.cjs tests/setores.test.cjs tests/produtos.test.cjs tests/relatorios.test.cjs tests/listeners.test.cjs tests/navigation.test.cjs
+node --test tests/auth.test.cjs tests/recuperacao-senha.test.cjs tests/visao-estoque.test.cjs tests/setores.test.cjs tests/produtos.test.cjs tests/relatorios.test.cjs tests/listeners.test.cjs tests/navigation.test.cjs
 npx.cmd --yes firebase-tools emulators:exec --project demo-estoque-local --only auth,firestore "node --test tests/firebase-rules.test.cjs"
 git diff --check
 ```

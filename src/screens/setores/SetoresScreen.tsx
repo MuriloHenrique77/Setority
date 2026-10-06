@@ -10,7 +10,7 @@ import { useSetores } from '../../services/setores/useSetores';
 import { mensagemErroSetores } from '../../utils/setores';
 import type { Setor } from '../../types/setor.types';
 import ConfirmModal from '../../components/ConfirmModal';
-import { FormButton } from '../../components/AuthFormLayout';
+import { colors } from '../../theme';
 
 export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'>) {
   const { estado, contexto, tentarNovamente } = useSetores();
@@ -77,7 +77,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
           onPress={() => handleAbrirSetor(item)}
         >
           <View style={styles.iconContainer}>
-            <Ionicons name="grid-outline" size={22} color="#1E88E5" />
+            <Ionicons name="grid-outline" size={22} color={colors.primary} />
           </View>
 
           <View style={styles.textContainer}>
@@ -96,7 +96,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
             accessibilityRole="button"
             onPress={() => handleEditarSetor(item)}
           >
-            <Ionicons name="create-outline" size={20} color="#F57C00" />
+            <Ionicons name="create-outline" size={20} color={colors.primary} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -106,7 +106,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
             accessibilityRole="button"
             onPress={() => handleExcluirSetor(item)}
           >
-            <Ionicons name="trash-outline" size={20} color="#D32F2F" />
+            <Ionicons name="trash-outline" size={20} color={colors.danger} />
           </TouchableOpacity>
         </View>
       </View>
@@ -116,7 +116,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
   function renderEmptyState() {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="folder-open-outline" size={64} color="#B0BEC5" />
+        <Ionicons name="folder-open-outline" size={64} color={colors.textSecondary} />
         <Text style={styles.emptyTitle}>Nenhum setor cadastrado</Text>
         <Text style={styles.emptyText}>
           Crie seu primeiro setor para começar a organizar suas informações.
@@ -148,12 +148,11 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
           activeOpacity={0.8}
           onPress={handleNovoSetor}
         >
-          <Ionicons name="add-circle-outline" size={20} color="#FFF" />
+          <Ionicons name="add-circle-outline" size={20} color={colors.surface} />
           <Text style={styles.newButtonText}>Novo setor</Text>
         </TouchableOpacity>
 
         {carregando ? <Text>Carregando setores...</Text> : null}
-        <FormButton label="Relatórios" onPress={() => navigation.navigate('Relatorios')} />
         {erroVisivel ? (
           <View>
             <Text accessibilityRole="alert">{erroVisivel}</Text>

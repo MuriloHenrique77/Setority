@@ -1,5 +1,6 @@
 import { Pressable, Text, StyleSheet } from 'react-native';
 import { useSession } from '../session/SessionProvider';
+import { colors, spacing, touchTarget, typography } from '../theme';
 
 export default function LogoutButton() {
   const { encerrarSessao } = useSession();
@@ -7,4 +8,5 @@ export default function LogoutButton() {
     <Text style={styles.text}>Sair</Text>
   </Pressable>;
 }
-const styles = StyleSheet.create({ button: { minWidth: 48, minHeight: 48, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center' }, text: { color: '#1565C0', fontWeight: '600', fontSize: 16 } });
+const styles = StyleSheet.create({ button: { minWidth: touchTarget, minHeight: touchTarget, paddingHorizontal: spacing.lg,
+  alignItems: 'center', justifyContent: 'center' }, text: { ...typography.label, color: colors.primary } });
