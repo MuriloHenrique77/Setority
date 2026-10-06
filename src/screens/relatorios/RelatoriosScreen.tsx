@@ -13,6 +13,9 @@ import { agregarRelatorio, mensagemErroRelatorio } from '../../utils/relatorios'
 import { construirIntervaloRelatorio, formatarDiaLocal, periodoPadrao } from '../../utils/periodoRelatorio';
 import { formatarDataRelatorio as data, formatarQuantidadeRelatorio as numero } from '../../utils/formatarRelatorio';
 import { authStyles, FormButton } from '../../components/AuthFormLayout';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { colors, radii, spacing, touchTarget, typography } from '../../theme';
+import { LoadingState } from '../../components/ui/ScreenState';
 import FiltroSelecao from '../../components/FiltroSelecao';
 
 type Linha =
@@ -44,6 +47,7 @@ const LinhaResultado = memo(function LinhaResultado({ item, abrir }: { item: Lin
 });
 
 export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<AuthenticatedTabParamList, 'Relatorios'>) {
+  const headerHeight = useHeaderHeight();
   const [padrao] = useState(periodoPadrao);
   const [inicial, setInicial] = useState(padrao.inicial), [final, setFinal] = useState(padrao.final);
   const [periodo, setPeriodo] = useState(() => construirIntervaloRelatorio(padrao.inicial, padrao.final));
@@ -75,9 +79,9 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
     return [
       { titulo: 'Entradas e saídas por setor', descricao: 'Totais do período com todos os filtros aplicados.', vazio: 'Nenhum setor movimentado para os filtros selecionados.',
         data: resultado.porSetor.map(s => ({ tipo: 'setor', id: 'setor:' + s.setorId, nome: s.nome, entradas: s.entradas, saidas: s.saidas })) },
-      { titulo: 'Maior entrada', descricao: 'Total de entradas por produto, do maior para o menor. Empates: nome e ID.', vazio: 'Nenhuma entrada para os filtros selecionados.',
+      { titulo: 'Maior entrada', descricao: 'Total de entradas por produto, do maior para o menor. Empates ordenados pelo nome.', vazio: 'Nenhuma entrada para os filtros selecionados.',
         data: resultado.maioresEntradas.map((r,i) => produtoLinha(r.produto, 'entrada:', (i + 1) + 'º • Total de entradas: ' + numero(r.quantidade))) },
-      { titulo: 'Maior saída', descricao: 'Total de saídas por produto, do maior para o menor. Empates: nome e ID.', vazio: 'Nenhuma saída para os filtros selecionados.',
+      { titulo: 'Maior saída', descricao: 'Total de saídas por produto, do maior para o menor. Empates ordenados pelo nome.', vazio: 'Nenhuma saída para os filtros selecionados.',
         data: resultado.maioresSaidas.map((r,i) => produtoLinha(r.produto, 'saida:', (i + 1) + 'º • Total de saídas: ' + numero(r.quantidade))) },
       { titulo: 'Produtos sem movimentação', descricao: 'Produtos ativos sem entrada nem saída no período. Respeita setor e produto; independe do filtro de tipo.',
         vazio: produtos.some(p => produtoAtivo(p) && (!produtoId || p.id === produtoId)) ? 'Todos os produtos ativos tiveram movimentação no período.' : 'Nenhum produto ativo para esta seleção.',
@@ -124,7 +128,7 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
     </View>
     <FormButton label="Limpar filtros" link onPress={limpar} />
     <Text style={styles.periodo}>Período aplicado: {formatarDiaLocal(periodo.inicio)} a {formatarDiaLocal(ultimoDia)}</Text>
-    {estado.status === 'loading' ? <Text style={styles.texto}>Carregando relatório...</Text> : null}
+    {estado.status === 'loading' ? <LoadingState /> : null}
     {estado.status === 'error' || calculo.erro ? <View>
       <Text accessibilityRole="alert" style={authStyles.error}>{estado.status === 'error' ? estado.mensagem : calculo.erro}</Text>
       <FormButton label="Tentar novamente" onPress={tentarNovamente} />
@@ -137,15 +141,20 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
           ['Total de entradas', resultado.resumo.totalEntradas], ['Total de saídas', resultado.resumo.totalSaidas],
           ['Saldo do período', resultado.resumo.saldoPeriodo], ['Movimentações', resultado.resumo.quantidadeMovimentacoes],
           ['Produtos movimentados', resultado.resumo.produtosMovimentados],
-        ].map(([label, valor]) => <View key={label} style={styles.metrica} accessible accessibilityLabel={label + ': ' + numero(Number(valor))}>
-          <Text style={styles.texto}>{label}</Text><Text style={styles.valor}>{numero(Number(valor))}</Text>
-        </View>)}
+        ].map(([label, valor]) => {
+          const formatado = numero(Number(valor));
+          return <View key={label} style={[styles.metrica, formatado.length > 8 && styles.metricaAmpla]}
+            accessible accessibilityLabel={label + ': ' + formatado}>
+            <Text style={styles.texto}>{label}</Text>
+            <Text style={styles.valor} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>{formatado}</Text>
+          </View>;
+        })}
       </View>
       <Text style={styles.texto}>Saldo do período = entradas − saídas. Esse valor não representa necessariamente o estoque atual. Produtos movimentados são produtos distintos.</Text>
     </> : null}
   </View>;
   return <SafeAreaView edges={['bottom', 'left', 'right']} style={styles.area}>
-    <KeyboardAvoidingView style={styles.area} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={80}>
+    <KeyboardAvoidingView style={styles.area} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={headerHeight}>
       <SectionList<Linha, Secao> sections={secoes} keyExtractor={chave} renderItem={renderItem}
         contentContainerStyle={styles.conteudo} ListHeaderComponent={cabecalho} stickySectionHeadersEnabled={false}
         keyboardShouldPersistTaps="handled" initialNumToRender={10}
@@ -157,19 +166,20 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
-  area: { flex: 1, backgroundColor: '#F5F5F5' }, conteudo: { padding: 20, paddingBottom: 32 },
-  titulo: { fontSize: 28, fontWeight: '700', color: '#111', marginBottom: 12 },
-  subtitulo: { fontSize: 22, fontWeight: '700', color: '#111', marginBottom: 8 },
-  texto: { fontSize: 15, lineHeight: 22, color: '#555', marginBottom: 12 }, periodo: { fontSize: 16, color: '#222', fontWeight: '600', marginBottom: 16 },
-  aviso: { fontSize: 15, lineHeight: 22, color: '#714900', backgroundColor: '#FFF3CD', padding: 12, borderRadius: 8, marginBottom: 16 },
-  tipos: { flexDirection: 'row', gap: 8, marginBottom: 12 }, opcaoTipo: { flex: 1, minHeight: 48, borderRadius: 10, borderWidth: 1,
-    borderColor: '#1565C0', alignItems: 'center', justifyContent: 'center', padding: 8 }, selecionado: { backgroundColor: '#1565C0' },
-  selecionadoTexto: { fontSize: 16, color: '#FFF', fontWeight: '600' }, link: { color: '#1565C0', fontSize: 16, fontWeight: '600' },
-  resumo: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 16 },
-  metrica: { flexBasis: '47%', flexGrow: 1, backgroundColor: '#FFF', padding: 14, borderRadius: 12 },
-  valor: { fontSize: 26, color: '#1565C0', fontWeight: '700' }, secao: { marginTop: 24 },
-  card: { backgroundColor: '#FFF', borderRadius: 12, borderWidth: 1, borderColor: '#DDD', padding: 16, marginBottom: 12 },
-  nome: { fontSize: 18, color: '#111', fontWeight: '700', marginBottom: 8 },
-  tipo: { fontSize: 18, fontWeight: '700', marginBottom: 10 }, entrada: { color: '#1565C0' }, saida: { color: '#A31818' },
-  detalhes: { minHeight: 48, justifyContent: 'center', marginTop: 4 }, vazio: { fontSize: 15, color: '#555', lineHeight: 22, marginBottom: 12 },
+  area: { flex: 1, backgroundColor: colors.background }, conteudo: { padding: spacing.xl, paddingBottom: spacing.xxxl },
+  titulo: { ...typography.title, color: colors.text, marginBottom: spacing.md },
+  subtitulo: { ...typography.cardTitle, color: colors.text, marginBottom: spacing.sm },
+  texto: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.md }, periodo: { ...typography.label, color: colors.text, marginBottom: spacing.lg },
+  aviso: { ...typography.body, color: colors.warning, backgroundColor: colors.warningSoft, padding: spacing.md, borderRadius: radii.md, marginBottom: spacing.lg },
+  tipos: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md }, opcaoTipo: { flex: 1, minHeight: touchTarget, borderRadius: radii.md, borderWidth: 1,
+    borderColor: colors.primary, alignItems: 'center', justifyContent: 'center', padding: spacing.sm }, selecionado: { backgroundColor: colors.primary },
+  selecionadoTexto: { ...typography.label, color: colors.surface }, link: { ...typography.label, color: colors.primary },
+  resumo: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.lg },
+  metrica: { flexBasis: '47%', flexGrow: 1, backgroundColor: colors.surface, padding: spacing.lg, borderRadius: radii.lg },
+  metricaAmpla: { flexBasis: '100%' },
+  valor: { ...typography.number, color: colors.primary }, secao: { marginTop: spacing.xxl },
+  card: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: spacing.md },
+  nome: { ...typography.cardTitle, color: colors.text, marginBottom: spacing.sm },
+  tipo: { ...typography.cardTitle, marginBottom: spacing.sm }, entrada: { color: colors.primary }, saida: { color: colors.danger },
+  detalhes: { minHeight: touchTarget, justifyContent: 'center', marginTop: spacing.xs }, vazio: { ...typography.body, color: colors.textSecondary, marginBottom: spacing.md },
 });

@@ -42,7 +42,7 @@ export function ProdutoLifecycleActions({ produto, contexto, removido }: {
   return <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
     <AppButton variant="secondary" label={produto.status === 'inativo' ? 'Reativar produto' : 'Inativar produto'}
       disabled={!contexto || busy} onPress={() => selecionar(produto.status === 'inativo' ? 'reativar' : 'inativar')} />
-    <AppButton variant="text" label="Excluir permanentemente" disabled={!contexto || busy} onPress={() => selecionar('excluir')} />
+    <AppButton variant="danger" label="Excluir permanentemente" disabled={!contexto || busy} onPress={() => selecionar('excluir')} />
     <ConfirmModal visible={acao !== null} busy={busy} destructive={acao === 'excluir'}
       title={acao === 'inativar' ? 'Inativar produto' : acao === 'reativar' ? 'Reativar produto' : 'Excluir permanentemente'}
       message={acao === 'inativar' ? mensagemInativacao(produto) : acao === 'reativar'

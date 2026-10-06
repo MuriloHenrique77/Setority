@@ -10,9 +10,11 @@ import { excluirMovimentacao } from '../../services/movimentacoes/movimentacoesS
 import { mensagemErroMovimentacao } from '../../utils/movimentacoes';
 import { ProdutoLifecycleActions } from '../../components/ProdutoLifecycleActions';
 import { produtoAtivo } from '../../utils/cicloProduto';
-import { colors } from '../../theme';
+import { colors, radii, spacing, typography } from '../../theme';
 import { precisaReposicao } from '../../utils/produtos';
 import { FormButton, authStyles } from '../../components/AuthFormLayout';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { LoadingState } from '../../components/ui/ScreenState';
 import ConfirmModal from '../../components/ConfirmModal';
 
 const formatoData = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -22,8 +24,8 @@ const LinhaMovimento = memo(function LinhaMovimento({ item, editar, excluir, dis
     <Text style={styles.texto}>{formatoData.format(item.criadoEm)}</Text>
     <Text style={styles.texto}>{item.observacao || 'Sem observação'}</Text>
     <View style={styles.acoes}>
-      <View style={styles.acao}><FormButton label="Editar" disabled={disabled} onPress={() => editar(item)} /></View>
-      <View style={styles.acao}><FormButton label="Excluir" disabled={disabled} onPress={() => excluir(item)} /></View>
+      <View style={styles.acao}><FormButton variant="secondary" label="Editar" disabled={disabled} onPress={() => editar(item)} /></View>
+      <View style={styles.acao}><FormButton variant="danger" label="Excluir" disabled={disabled} onPress={() => excluir(item)} /></View>
     </View>
   </View>;
 });
@@ -31,6 +33,7 @@ const chaveMovimento = (item: Movimentacao) => item.id;
 
 export default function ProdutoDetalhesScreen({ route, navigation }: StockScreenProps<'ProdutoDetalhes'>) {
   const { setor, produtoId } = route.params;
+  const feedback = useFeedback();
   const { estado, contexto, tentarNovamente } = useProdutos(setor.id);
   const historico = useMovimentacoesProduto(produtoId, setor.id);
   const valido = contexto?.estabelecimentoId === setor.estabelecimentoId;
@@ -44,7 +47,7 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
   async function excluirRegistro() {
     if (ocupado.current || !contexto || !produto || !produtoAtivo(produto) || !movimentoExcluir) return;
     ocupado.current = true; setExcluindo(true); setErro(null);
-    try { await excluirMovimentacao(contexto, produtoId, setor.id, movimentoExcluir.id); }
+    try { await excluirMovimentacao(contexto, produtoId, setor.id, movimentoExcluir.id); if (ativo.current) feedback('Movimentação excluída. Estoque atualizado.'); }
     catch (e) { if (ativo.current) { setErro(mensagemErroMovimentacao(e, true)); lista.current?.scrollToOffset({ offset: 0, animated: true }); } }
     finally { ocupado.current = false; if (ativo.current) { setMovimentoExcluir(null); setExcluindo(false); } }
   }
@@ -58,13 +61,13 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
   const movimentos = valido && historico.estado.status === 'data' ? historico.estado.movimentos : [];
   const cabecalho = <View>
     {!valido ? <Text style={authStyles.error}>Produto indisponível nesta sessão.</Text> : null}
-    {estado.status === 'loading' ? <Text>Carregando produto...</Text> : null}
+    {estado.status === 'loading' ? <LoadingState /> : null}
     {erroLista || erro ? <Text accessibilityRole="alert" style={authStyles.error}>{erro ?? erroLista}</Text> : null}
-    {estado.status === 'data' && !produto ? <Text>Produto não encontrado.</Text> : null}
+    {estado.status === 'data' && !produto ? <Text style={styles.texto}>Produto não encontrado.</Text> : null}
     {produto ? <>
       <Text style={styles.texto}>Setor: {setor.nome}</Text>
       <Text style={styles.titulo}>{produto.nome}</Text>
-      {produto.status === 'inativo' ? <Text style={styles.alerta}>Produto inativo — estoque e histórico preservados</Text> : null}
+      {produto.status === 'inativo' ? <Text style={styles.texto}>Produto inativo — estoque e histórico preservados</Text> : null}
       <Text style={styles.texto}>{produto.descricao || 'Sem descrição'}</Text>
       <Text style={styles.saldo}>Estoque atual: {produto.estoqueAtual}</Text>
       {produto.estoqueMinimo !== undefined ? <Text style={styles.texto}>Estoque mínimo: {produto.estoqueMinimo}</Text> : null}
@@ -74,11 +77,11 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
         <View style={styles.acao}><FormButton label="Entrada" disabled={excluindo || !produtoAtivo(produto)} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'entrada' })} /></View>
         <View style={styles.acao}><FormButton label="Saída" disabled={excluindo || !produtoAtivo(produto)} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'saida' })} /></View>
       </View>
-      <FormButton label="Editar produto" disabled={excluindo} onPress={() => navigation.navigate('ProdutoForm', { setor, produto: dadosDeRota(produto) })} />
+      <FormButton variant="secondary" label="Editar produto" disabled={excluindo} onPress={() => navigation.navigate('ProdutoForm', { setor, produto: dadosDeRota(produto) })} />
       <ProdutoLifecycleActions produto={produto} contexto={valido ? contexto : null} removido={() => navigation.goBack()} />
     </> : null}
     <Text style={styles.titulo}>Histórico de movimentações</Text>
-    {historico.estado.status === 'loading' ? <Text>Carregando histórico...</Text> : null}
+    {historico.estado.status === 'loading' ? <LoadingState /> : null}
     {historico.estado.status === 'error' ? <Text accessibilityRole="alert" style={authStyles.error}>{historico.estado.mensagem}</Text> : null}
     {erroLista || historico.estado.status === 'error' ? <FormButton label="Tentar novamente" onPress={() => { tentarNovamente(); historico.tentarNovamente(); }} /> : null}
   </View>;
@@ -92,12 +95,12 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
   </SafeAreaView>;
 }
 const styles = StyleSheet.create({
-  area: { flex: 1, backgroundColor: colors.background }, conteudo: { padding: 20, paddingBottom: 32 },
-  titulo: { color: colors.text, fontSize: 24, fontWeight: '700', marginBottom: 12, marginTop: 12 },
-  texto: { color: colors.textSecondary, fontSize: 15, lineHeight: 22, marginBottom: 8 },
-  saldo: { color: colors.primary, fontSize: 26, fontWeight: '700', marginVertical: 14 },
-  alerta: { color: colors.warning, fontSize: 16, fontWeight: '600', marginBottom: 10 },
+  area: { flex: 1, backgroundColor: colors.background }, conteudo: { padding: spacing.xl, paddingBottom: spacing.xxxl },
+  titulo: { color: colors.text, ...typography.title, marginBottom: 12, marginTop: 12 },
+  texto: { color: colors.textSecondary, ...typography.body, marginBottom: 8 },
+  saldo: { color: colors.primary, ...typography.number, marginVertical: 14 },
+  alerta: { color: colors.warning, ...typography.label, marginBottom: 10 },
   acoes: { flexDirection: 'row', gap: 12, marginTop: 12 }, acao: { flex: 1 },
-  movimento: { padding: 16, backgroundColor: colors.surface, borderRadius: 12, marginTop: 12, borderWidth: 1, borderColor: colors.border },
-  nome: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 8 },
+  movimento: { padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radii.lg, marginTop: 12, borderWidth: 1, borderColor: colors.border },
+  nome: { color: colors.text, ...typography.cardTitle, marginBottom: 8 },
 });

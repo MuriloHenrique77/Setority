@@ -7,9 +7,10 @@ import { useProdutos } from '../../services/produtos/useProdutos';
 import { ProdutoLifecycleActions } from '../../components/ProdutoLifecycleActions';
 import { produtoAtivo } from '../../utils/cicloProduto';
 import { AppButton } from '../../components/ui/AppButton';
-import { colors } from '../../theme';
+import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 import { precisaReposicao } from '../../utils/produtos';
 import type { Produto } from '../../types/produto.types';
+import { LoadingState, EmptyState } from '../../components/ui/ScreenState';
 import { FormButton, authStyles } from '../../components/AuthFormLayout';
 
 export default function ProdutosScreen({ navigation, route }: StockScreenProps<'Produtos'>) {
@@ -20,7 +21,7 @@ export default function ProdutosScreen({ navigation, route }: StockScreenProps<'
   const produtos = valido && estado.status === 'data' ? estado.produtos.filter(p => produtoAtivo(p) === (aba === 'ativo')) : [];
   function renderProduto({ item }: { item: Produto }) {
     return <View style={styles.card}>
-      <TouchableOpacity accessibilityRole="button" accessibilityLabel={`Abrir produto ${item.nome}`}
+      <TouchableOpacity style={{ minHeight: touchTarget }} accessibilityRole="button" accessibilityLabel={`Abrir produto ${item.nome}`}
         onPress={() => navigation.navigate('ProdutoDetalhes', { setor, produtoId: item.id })}>
         <Text style={styles.nome}>{item.nome}</Text>
         <Text style={styles.editar}>Ver detalhes e movimentações</Text>
@@ -46,26 +47,26 @@ export default function ProdutosScreen({ navigation, route }: StockScreenProps<'
       <Text style={styles.titulo}>{setor.nome}</Text>
       <Text style={authStyles.subtitle}>Produtos cadastrados neste setor</Text>
       <FormButton label="Novo produto" disabled={!valido} onPress={() => navigation.navigate('ProdutoForm', { setor })} />
-      {estado.status === 'loading' ? <Text>Carregando produtos...</Text> : null}
-      <View style={styles.acoes}><View style={{ flex: 1 }}><AppButton label="Ativos" variant={aba === 'ativo' ? 'primary' : 'secondary'} onPress={() => setAba('ativo')} /></View><View style={{ flex: 1 }}><AppButton label="Inativos" variant={aba === 'inativo' ? 'primary' : 'secondary'} onPress={() => setAba('inativo')} /></View></View>
+      {estado.status === 'loading' ? <LoadingState /> : null}
+      <View style={styles.acoes}><View style={{ flex: 1 }}><AppButton label="Ativos" selected={aba === 'ativo'} variant={aba === 'ativo' ? 'primary' : 'secondary'} onPress={() => setAba('ativo')} /></View><View style={{ flex: 1 }}><AppButton label="Inativos" selected={aba === 'inativo'} variant={aba === 'inativo' ? 'primary' : 'secondary'} onPress={() => setAba('inativo')} /></View></View>
       {erroVisivel ? <View><Text accessibilityRole="alert" style={authStyles.error}>{erroVisivel}</Text>
         <FormButton label="Tentar novamente" onPress={tentarNovamente} /></View> : null}
       <FlatList data={produtos} keyExtractor={p => p.id} renderItem={renderProduto}
         contentContainerStyle={styles.lista} ListEmptyComponent={estado.status === 'data' && !erroVisivel
-          ? <Text style={styles.vazio}>{aba === 'ativo' ? 'Nenhum produto ativo. Adicione produtos para este setor.' : 'Nenhum produto inativo neste setor.'}</Text> : null} />
+          ? <EmptyState title={aba === 'ativo' ? 'Nenhum produto ativo' : 'Nenhum produto inativo'} message={aba === 'ativo' ? 'Adicione um produto ou reative um produto deste setor.' : 'Os produtos inativados aparecerão aqui com estoque e histórico preservados.'} /> : null} />
     </View>
   </SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
-  area: { flex: 1, backgroundColor: colors.background }, conteudo: { flex: 1, padding: 20 },
-  titulo: { fontSize: 28, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  card: { backgroundColor: colors.surface, borderRadius: 14, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 12 },
-  nome: { fontSize: 17, fontWeight: '700', color: colors.text }, descricao: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
-  saldo: { fontSize: 16, fontWeight: '700', color: colors.primary, marginTop: 8 },
-  atencao: { fontSize: 15, fontWeight: '600', color: colors.warning, marginTop: 6 },
+  area: { flex: 1, backgroundColor: colors.background }, conteudo: { flex: 1, padding: spacing.xl },
+  titulo: { ...typography.title, color: colors.text, marginBottom: 8 },
+  card: { backgroundColor: colors.surface, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.lg, marginBottom: 12 },
+  nome: { ...typography.cardTitle, color: colors.text }, descricao: { ...typography.caption, color: colors.textSecondary, marginTop: 6 },
+  saldo: { ...typography.cardTitle, color: colors.primary, marginTop: 8 },
+  atencao: { ...typography.label, color: colors.warning, marginTop: 6 },
   acoes: { flexDirection: 'row', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: 8, gap: 12 },
   acao: { minHeight: 48, minWidth: 80, justifyContent: 'center', alignItems: 'center' },
-  editar: { fontSize: 15, color: colors.primary, fontWeight: '600' },
-  lista: { flexGrow: 1, paddingBottom: 20 }, vazio: { color: colors.textSecondary, fontSize: 17, textAlign: 'center', marginTop: 24 },
+  editar: { ...typography.label, color: colors.primary },
+  lista: { flexGrow: 1, paddingBottom: spacing.xl },
 });

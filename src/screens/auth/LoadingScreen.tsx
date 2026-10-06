@@ -1,9 +1,10 @@
 import { ActivityIndicator, Text, View, StyleSheet } from 'react-native';
 
+import { colors, spacing, typography } from '../../theme';
 export default function LoadingScreen() {
   return <View style={styles.container} accessibilityLiveRegion="polite">
-    <ActivityIndicator size="large" color="#1E88E5" />
+    <ActivityIndicator color={colors.primary} />
     <Text style={styles.text}>Carregando sua sessão...</Text>
   </View>;
 }
-const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: '#F5F5F5', alignItems: 'center', justifyContent: 'center', padding: 20 }, text: { color: '#333', marginTop: 16, fontSize: 16 } });
+const styles = StyleSheet.create({ container: { flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center', padding: spacing.xl }, text: { ...typography.body, color: colors.textSecondary, marginTop: spacing.lg } });

@@ -29,9 +29,9 @@ export default function CriarEstabelecimentoScreen() {
   return <AuthFormLayout title="Criar estabelecimento" erro={erro}
     subtitle="Sua conta está criada. Conclua este passo para acessar o aplicativo. Se sair agora, poderá continuar ao entrar novamente.">
     <Text style={authStyles.label}>Nome do estabelecimento</Text>
-    <TextInput accessibilityLabel="Nome do estabelecimento" style={authStyles.input} value={nome} onChangeText={setNome}
+    <TextInput accessibilityLabel="Nome do estabelecimento" style={authStyles.input} value={nome} onChangeText={t => { setNome(t); setErro(null); }}
       editable={!enviando} maxLength={120} autoCapitalize="words" />
     <Text style={authStyles.subtitle}>É necessária uma conexão para confirmar a configuração. Sua conta será preservada se ocorrer uma falha.</Text>
-    <FormButton label={enviando ? 'Configurando...' : 'Criar estabelecimento'} disabled={enviando} onPress={() => { void enviar(); }} />
+    <FormButton label={enviando ? 'Configurando...' : 'Criar estabelecimento'} loading={enviando} disabled={enviando} onPress={() => { void enviar(); }} />
   </AuthFormLayout>;
 }

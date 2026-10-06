@@ -1,12 +1,12 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 type Variant = 'primary' | 'secondary' | 'danger' | 'text';
-export function AppButton({ label, onPress, variant = 'primary', disabled = false, loading = false }: {
-  label: string; onPress: () => void; variant?: Variant; disabled?: boolean; loading?: boolean;
+export function AppButton({ label, onPress, variant = 'primary', disabled = false, loading = false, selected }: {
+  label: string; onPress: () => void; variant?: Variant; disabled?: boolean; loading?: boolean; selected?: boolean;
 }) {
   const blocked = disabled || loading;
   const foreground = variant === 'primary' || variant === 'danger' ? colors.surface : colors.primary;
-  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: blocked, busy: loading }}
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ disabled: blocked, busy: loading, selected }}
     disabled={blocked} onPress={onPress} style={({ pressed }) => [styles.button, styles[variant], (blocked || pressed) && styles.dim]}>
     {loading ? <ActivityIndicator color={foreground} /> : null}
     <Text style={[styles.label, { color: foreground }]}>{label}</Text>

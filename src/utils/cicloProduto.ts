@@ -10,5 +10,5 @@ export function validarExclusaoPermanente(produto: { possuiHistorico?: boolean }
   if (produto.possuiHistorico !== false) throw new Error(produto.possuiHistorico === true ? MENSAGEM_HISTORICO : MENSAGEM_LEGADO);
 }
 export function mensagemInativacao(produto: Pick<Produto, 'estoqueAtual'>): string {
-  return `O produto sairá das listas normais. Seu histórico e estoque serão preservados. Nenhuma nova movimentação será permitida até a reativação.${produto.estoqueAtual > 0 ? ` Este produto ainda possui ${produto.estoqueAtual} unidades em estoque.` : ''}`;
+  return `O produto sairá das listas normais. Seu histórico e estoque serão preservados. Nenhuma nova movimentação será permitida até a reativação.${produto.estoqueAtual > 0 ? ` Este produto ainda possui ${produto.estoqueAtual} ${produto.estoqueAtual === 1 ? 'unidade' : 'unidades'} em estoque.` : ''}`;
 }

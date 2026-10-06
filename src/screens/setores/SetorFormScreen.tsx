@@ -45,13 +45,13 @@ export default function SetorFormScreen({ navigation, route }: StockScreenProps<
     erro={contextoValido ? erro : 'Este setor não pertence à sessão atual.'}>
     <Text style={authStyles.label}>Nome do setor</Text>
     <TextInput accessibilityLabel="Nome do setor" style={authStyles.input} placeholder="Ex: Almoxarifado"
-      value={nome} onChangeText={setNome} editable={!salvando && contextoValido} maxLength={120} />
+      value={nome} onChangeText={t => { setNome(t); setErro(null); }} editable={!salvando && contextoValido} maxLength={120} />
     <Text style={authStyles.label}>Descrição</Text>
     <TextInput accessibilityLabel="Descrição" style={[authStyles.input, { minHeight: 110 }]} placeholder="Opcional"
-      value={descricao} onChangeText={setDescricao} editable={!salvando && contextoValido} maxLength={2000}
+      value={descricao} onChangeText={t => { setDescricao(t); setErro(null); }} editable={!salvando && contextoValido} maxLength={2000}
       multiline numberOfLines={4} textAlignVertical="top" />
-    {salvando ? <Text style={authStyles.subtitle}>Aguardando confirmação. Sem conexão, o Firestore mantém a alteração pendente e sincroniza quando a rede retornar.</Text> : null}
+    {salvando ? <Text style={authStyles.subtitle}>Aguardando confirmação. Sem conexão, a alteração fica pendente e será sincronizada quando a rede retornar.</Text> : null}
     <FormButton label={salvando ? 'Salvando...' : setor ? 'Salvar alterações' : 'Salvar setor'}
-      disabled={salvando || !contextoValido} onPress={() => { void handleSalvar(); }} />
+      loading={salvando} disabled={salvando || !contextoValido} onPress={() => { void handleSalvar(); }} />
   </AuthFormLayout>;
 }

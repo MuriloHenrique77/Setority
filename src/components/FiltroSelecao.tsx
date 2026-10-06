@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { colors, radii, spacing, touchTarget, typography } from '../theme';
 
 type Opcao = { id: string; nome: string };
 type Props = { titulo: string; todos: string; opcoes: Opcao[]; valor?: string; disabled?: boolean; onChange: (id?: string) => void };
@@ -12,12 +14,13 @@ export default function FiltroSelecao({ titulo, todos, opcoes, valor, onChange, 
   return <View style={styles.campo}>
     <Text style={styles.label}>{titulo}</Text>
     <Pressable accessibilityRole="button" accessibilityLabel={'Selecionar ' + titulo.toLowerCase()}
-      accessibilityState={{ disabled }} disabled={disabled} style={styles.botao}
+      accessibilityState={{ disabled }} disabled={disabled} style={[styles.botao, disabled && styles.disabled]}
       onPress={() => { setBusca(''); setAberto(true); }}>
       <Text style={styles.nome}>{escolhido}</Text><Text style={styles.indicador}>Selecionar</Text>
     </Pressable>
     <Modal visible={aberto} animationType="slide" onRequestClose={() => setAberto(false)}>
       <SafeAreaView style={styles.modal}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Text style={styles.titulo}>Selecionar {titulo.toLowerCase()}</Text>
         <TextInput accessibilityLabel={'Buscar ' + titulo.toLowerCase()} placeholder="Buscar por nome"
           style={styles.busca} value={busca} onChangeText={setBusca} />
@@ -28,16 +31,16 @@ export default function FiltroSelecao({ titulo, todos, opcoes, valor, onChange, 
             <Text style={styles.nome}>{item.nome}{item.id === (valor ?? '') ? ' • Selecionado' : ''}</Text>
           </Pressable>} />
         <Pressable accessibilityRole="button" style={styles.fechar} onPress={() => setAberto(false)}><Text style={styles.nome}>Fechar seleção</Text></Pressable>
-      </SafeAreaView>
+      </KeyboardAvoidingView></SafeAreaView>
     </Modal>
   </View>;
 }
 const styles = StyleSheet.create({
-  campo: { marginBottom: 16 }, label: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: '#222' },
-  botao: { backgroundColor: '#FFF', borderWidth: 1, borderColor: '#DDD', borderRadius: 12, padding: 14, minHeight: 52 },
-  nome: { color: '#222', fontSize: 16, flexShrink: 1 }, indicador: { color: '#1565C0', fontSize: 13, marginTop: 6 },
-  modal: { flex: 1, backgroundColor: '#F5F5F5', padding: 20 }, titulo: { fontSize: 24, fontWeight: '700', marginBottom: 16 },
-  busca: { backgroundColor: '#FFF', borderRadius: 12, padding: 14, minHeight: 48, marginBottom: 12, fontSize: 16 },
-  opcao: { minHeight: 52, padding: 16, borderBottomWidth: 1, borderColor: '#DDD' },
-  fechar: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
+  campo: { marginBottom: spacing.lg }, label: { ...typography.label, marginBottom: spacing.sm, color: colors.text },
+  botao: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.lg, minHeight: touchTarget }, disabled: { opacity: 0.55 },
+  nome: { ...typography.body, color: colors.text, flexShrink: 1 }, indicador: { ...typography.caption, color: colors.primary, marginTop: spacing.xs },
+  modal: { flex: 1, backgroundColor: colors.background, padding: spacing.xl }, titulo: { ...typography.title, color: colors.text, marginBottom: spacing.lg },
+  busca: { ...typography.body, color: colors.text, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg, minHeight: touchTarget, marginBottom: spacing.md },
+  opcao: { minHeight: touchTarget, padding: spacing.lg, borderBottomWidth: 1, borderColor: colors.border },
+  fechar: { minHeight: touchTarget, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
 });

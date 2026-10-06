@@ -11,9 +11,12 @@ import { mensagemErroSetores } from '../../utils/setores';
 import type { Setor } from '../../types/setor.types';
 import ConfirmModal from '../../components/ConfirmModal';
 import { colors } from '../../theme';
+import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { LoadingState, ErrorState } from '../../components/ui/ScreenState';
 
 export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'>) {
   const { estado, contexto, tentarNovamente } = useSetores();
+  const feedback = useFeedback();
   const setores = estado.status === 'data' ? estado.setores : [];
   const [erro, setErro] = useState<string | null>(null);
   const carregando = estado.status === 'loading';
@@ -50,6 +53,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
     setErro(null);
     try {
       await removerSetor(contexto, setorParaExcluir.id);
+      if (ativo.current) feedback('Setor excluído com sucesso.');
     } catch (error) {
       if (ativo.current) setErro(mensagemErroSetores(error));
     } finally {
@@ -73,6 +77,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
       <View style={styles.card}>
         <TouchableOpacity
           style={styles.cardMainArea}
+          accessibilityRole="button" accessibilityLabel={`Abrir setor ${item.nome}`}
           activeOpacity={0.7}
           onPress={() => handleAbrirSetor(item)}
         >
@@ -123,7 +128,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
         </Text>
 
         <TouchableOpacity
-          style={styles.emptyButton}
+          accessibilityRole="button" style={styles.emptyButton}
           activeOpacity={0.8}
           onPress={handleNovoSetor}
         >
@@ -144,7 +149,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
         </View>
 
         <TouchableOpacity
-          style={styles.newButton}
+          accessibilityRole="button" style={styles.newButton}
           activeOpacity={0.8}
           onPress={handleNovoSetor}
         >
@@ -152,15 +157,8 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
           <Text style={styles.newButtonText}>Novo setor</Text>
         </TouchableOpacity>
 
-        {carregando ? <Text>Carregando setores...</Text> : null}
-        {erroVisivel ? (
-          <View>
-            <Text accessibilityRole="alert">{erroVisivel}</Text>
-            <TouchableOpacity style={styles.retryButton} onPress={() => { setErro(null); tentarNovamente(); }} accessibilityRole="button">
-              <Text>Tentar carregar novamente</Text>
-            </TouchableOpacity>
-          </View>
-        ) : null}
+        {carregando ? <LoadingState /> : null}
+        {erroVisivel ? <ErrorState message={erroVisivel} retry={() => { setErro(null); tentarNovamente(); }} /> : null}
 
         <FlatList
           data={setores}
@@ -177,6 +175,7 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
 
       <ConfirmModal
         visible={modalVisible}
+        busy={excluindo}
         title="Excluir setor"
         message={
           setorParaExcluir

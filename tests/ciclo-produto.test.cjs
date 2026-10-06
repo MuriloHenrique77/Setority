@@ -88,3 +88,10 @@ test('10B listas/Home/atenção consideram ativos e legado; relatório/global pr
   assert.equal(r.resumo.totalEntradas, 10); assert.equal(r.maioresEntradas[0].produto.id, 'i');
   for (const campo of ['reposicao', 'zerados', 'semMovimentacao']) assert.deepEqual(r[campo].map(p => p.id), ['a', 'l']);
 });
+
+test('10D mensagem de inativação apresenta unidade no singular e unidades no plural', () => {
+  const { mensagemInativacao } = ambiente().carregar('src/utils/cicloProduto.ts');
+  assert.match(mensagemInativacao({ estoqueAtual: 1 }), /1 unidade em estoque/);
+  assert.match(mensagemInativacao({ estoqueAtual: 2 }), /2 unidades em estoque/);
+  assert.doesNotMatch(mensagemInativacao({ estoqueAtual: 0 }), /unidades? em estoque/);
+});

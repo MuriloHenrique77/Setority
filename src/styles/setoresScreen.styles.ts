@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colors, fonts, spacing, radii, touchTarget } from '../theme';
+import { colors, spacing, radii, touchTarget, typography } from '../theme';
 
 export const styles = StyleSheet.create({
   safeArea: {
@@ -18,14 +18,13 @@ export const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 24,
-    fontFamily: fonts.semibold,
+    ...typography.title,
     color: colors.text,
   },
 
   subtitle: {
     marginTop: 6,
-    fontSize: 15,
+    ...typography.body,
     color: colors.textSecondary,
     lineHeight: 22,
   },
@@ -45,8 +44,7 @@ export const styles = StyleSheet.create({
 
   newButtonText: {
     color: colors.surface,
-    fontSize: 16,
-    fontFamily: fonts.semibold,
+    ...typography.label,
   },
 
   listContent: {
@@ -90,14 +88,13 @@ export const styles = StyleSheet.create({
   },
 
   cardTitle: {
-    fontSize: 17,
-    fontFamily: fonts.semibold,
+    ...typography.cardTitle,
     color: colors.text,
   },
 
   cardDescription: {
     marginTop: 4,
-    fontSize: 14,
+    ...typography.caption,
     color: colors.textSecondary,
   },
 
@@ -117,14 +114,6 @@ export const styles = StyleSheet.create({
     borderRadius: 10,
   },
 
-  retryButton: {
-    minHeight: touchTarget,
-    justifyContent: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
-  },
-
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -134,15 +123,14 @@ export const styles = StyleSheet.create({
 
   emptyTitle: {
     marginTop: 16,
-    fontSize: 22,
-    fontFamily: fonts.semibold,
+    ...typography.cardTitle,
     color: colors.text,
     textAlign: 'center',
   },
 
   emptyText: {
     marginTop: 8,
-    fontSize: 15,
+    ...typography.body,
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
@@ -159,7 +147,6 @@ export const styles = StyleSheet.create({
 
   emptyButtonText: {
     color: colors.surface,
-    fontSize: 15,
-    fontFamily: fonts.semibold,
+    ...typography.label,
   },
 });
