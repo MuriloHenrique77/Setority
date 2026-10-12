@@ -938,6 +938,36 @@ test('7B edição/exclusão: deltas, imutabilidade, isolamento e concorrência',
   await consistency(f);
  });
 
+ for(const scenario of ['duas entradas','edição de entrada e nova saída'])await t.test('Etapa 10E: '+scenario+' concorrentes confirmam após releitura sem perder delta',async()=>{
+  const f=await fixture('entrada',10,10,1,true);
+  const snapshot=await read('produtos',f.p);
+  const operations=scenario==='duas entradas'
+   ? [newMovement(f,'entrada',5),newMovement(f,'entrada',7)]
+   : [writes(f,12),newMovement(f,'saida',3)];
+  for(const operation of operations)operation[1].currentDocument={updateTime:snapshot.data.updateTime};
+  const results=await Promise.all(operations.map(operation=>commit(operation)));
+  assert.equal(results.filter(result=>result.status===200).length,1);
+  const loser=results.findIndex(result=>result.status!==200);
+  assert.ok([403,409].includes(results[loser].status));
+  await consistency(f);
+  const fresh=await read('produtos',f.p);f.product=fresh.data.fields;
+  const retry=scenario==='duas entradas'?newMovement(f,'entrada',loser===0?5:7)
+   : loser===0?writes(f,12):newMovement(f,'saida',3);
+  // A solicitação que ainda não confirmou conserva seu ID na releitura.
+  if(scenario==='duas entradas'||loser===1){
+   const originalId=operations[loser][0].update.fields.id.stringValue;
+   const retryId=retry[0].update.fields.id.stringValue;
+   retry[0].update.name=path('movimentacoes',originalId);
+   retry[0].update.fields.id=string(originalId);
+   retry[1].update.fields.ultimaMovimentacaoId=string(originalId);
+   retry[1].update.fields.movimentacaoIds.arrayValue.values=retry[1].update.fields.movimentacaoIds.arrayValue.values.map(id=>id.stringValue===retryId?string(originalId):id);
+  }
+  retry[1].currentDocument={updateTime:fresh.data.updateTime};ok(await commit(retry));
+  assert.equal(await consistency(f),scenario==='duas entradas'?22:9);
+  const final=(await read('produtos',f.p)).data.fields;
+  assert.equal(Number(final.quantidadeMovimentacoes.integerValue),scenario==='duas entradas'?3:2);
+ });
+
  await t.test('registro parcial após delete registrado e não registrado mantém histórico e cascade seguro',async()=>{
   const f=await fixture('entrada',1,10,10);
   const originals=[...f.ids];

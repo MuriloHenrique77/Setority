@@ -1,0 +1,15 @@
+{
+  "cli": {
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "developmentClient": false,
+      "credentialsSource": "remote",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  }
+}
