@@ -1,13 +1,17 @@
 # Changelog
 
-## [Unreleased] - 1.1.0
+## [1.1.0] - 2026-10-13
 
 ### Added
 - Identificação opcional do vendedor nas movimentações de saída.
+- Boot Setority e exibição dinâmica da versão no Boot e na Conta, autorizados no fechamento da release.
 
 ### Changed
 - Home simplificada sem movimentações recentes.
 - Produtos deixam de possuir exclusão permanente e passam a usar exclusivamente inativação/reativação.
+
+### Fixed
+- Splash nativa permanece visível até o Boot estar pronto, sem intervalo vazio ou delay artificial.
 
 ## [1.0.0] - 2026-10-08
 

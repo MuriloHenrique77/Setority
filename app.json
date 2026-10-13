@@ -2,7 +2,7 @@
   "expo": {
     "name": "Setority",
     "slug": "Controle-de-Fluxo",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/setority-icon.png",
     "userInterfaceStyle": "light",
@@ -25,12 +25,24 @@
         "backgroundColor": "#DCE8F4"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "versionCode": 2
     },
     "web": {
       "favicon": "./assets/setority-icon.png"
     },
     "plugins": [
+      [
+        "expo-splash-screen",
+        {
+          "android": {
+            "image": "./assets/setority-adaptive-foreground.png",
+            "imageWidth": 216,
+            "resizeMode": "contain",
+            "backgroundColor": "#F7F9FC"
+          }
+        }
+      ],
       [
         "expo-font",
         {

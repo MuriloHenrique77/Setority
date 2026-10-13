@@ -7,23 +7,22 @@ import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
 import { Inter_500Medium } from '@expo-google-fonts/inter/500Medium';
 import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
 import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
-import { ActivityIndicator, Text, View } from 'react-native';
-import { colors } from './src/theme';
+import BootScreen from './src/components/BootScreen';
 import { navigationTheme } from './src/theme/navigation';
 import { FeedbackProvider } from './src/components/ui/FeedbackProvider';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
+
+// A splash nativa permanece até o Boot ter imagem e layout prontos.
+void SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const [fontesCarregadas, erroFonte] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   // Nenhuma tela com tipografia de fallback pisca antes das fontes locais.
   return (
-    <>
-      <StatusBar style="dark" />
-      {!fontesCarregadas ? <View style={{ flex: 1, backgroundColor: colors.background, alignItems: 'center', justifyContent: 'center' }}>
-    {erroFonte ? <Text style={{ color: colors.danger }}>Não foi possível carregar a interface. Reabra o aplicativo.</Text>
-      : <ActivityIndicator color={colors.primary} accessibilityLabel="Carregando interface" />}
-  </View> : (
     <SafeAreaProvider>
+      <StatusBar style="dark" />
+      {!fontesCarregadas ? <BootScreen erro={Boolean(erroFonte)} pronto={Boolean(erroFonte)} /> : (
       <FeedbackProvider>
       <SessionProvider>
         <NavigationContainer theme={navigationTheme}>
@@ -31,8 +30,7 @@ export default function App() {
         </NavigationContainer>
       </SessionProvider>
       </FeedbackProvider>
-    </SafeAreaProvider>
       )}
-    </>
+    </SafeAreaProvider>
   );
 }

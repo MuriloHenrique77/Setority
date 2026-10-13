@@ -10,6 +10,7 @@ import { SectionHeader } from '../../components/ui/SectionHeader';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import ConfirmModal from '../../components/ConfirmModal';
 import { colors, spacing, typography } from '../../theme';
+import { obterVersaoApp } from '../../utils/versaoApp';
 
 export default function ContaScreen() {
   const { estado, encerrarSessao } = useSession();
@@ -46,6 +47,7 @@ export default function ContaScreen() {
     <AppButton label="Redefinir senha" variant="secondary" disabled={enviando} loading={enviando && acao === 'senha'} onPress={() => setAcao('senha')} />
     <SectionHeader title="Sessão" />
     <AppButton label="Sair da conta" variant="text" disabled={enviando} loading={enviando && acao === 'sair'} onPress={() => setAcao('sair')} />
+    <Text style={styles.versao}>Versão {obterVersaoApp()}</Text>
     <ConfirmModal visible={acao !== null} busy={enviando} destructive={false}
       title={acao === 'sair' ? 'Sair da conta?' : 'Redefinir senha'}
       message={acao === 'sair' ? 'Você precisará entrar novamente para acessar seu estabelecimento.' : `Enviaremos um link de redefinição para ${conta.email}.`}
@@ -54,4 +56,5 @@ export default function ContaScreen() {
   </AppScreen>;
 }
 const styles = StyleSheet.create({ dados: { gap: spacing.xl }, campo: { gap: spacing.sm },
-  label: { ...typography.label, color: colors.textSecondary }, valor: { ...typography.body, color: colors.text } });
+  label: { ...typography.label, color: colors.textSecondary }, valor: { ...typography.body, color: colors.text },
+  versao: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xxl } });

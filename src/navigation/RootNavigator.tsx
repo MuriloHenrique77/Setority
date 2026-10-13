@@ -26,7 +26,7 @@ export default function RootNavigator() {
   const chave = estado.status === 'authenticatedReady'
     ? `${estado.status}:${estado.conta.uid}:${estado.perfil.estabelecimentoId}` : estado.status;
   return <Stack.Navigator key={chave} screenOptions={appHeaderOptions}>
-    {estado.status === 'loading' ? <Stack.Screen name="Loading" component={LoadingScreen} options={{ title: 'Controle de estoque' }} />
+    {estado.status === 'loading' ? <Stack.Screen name="Loading" component={LoadingScreen} options={{ headerShown: false }} />
       : estado.status === 'unauthenticated' ? <Stack.Screen name="Auth" component={AuthNavigator} options={{ headerShown: false }} />
       : estado.status === 'authenticatedWithoutProfile' ? <Stack.Screen name="Onboarding" component={CriarEstabelecimentoScreen} options={{ title: 'Configurar estabelecimento', headerRight: () => <LogoutButton /> }} />
       : estado.status === 'authenticatedReady' ? <>
