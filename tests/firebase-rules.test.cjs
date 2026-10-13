@@ -465,7 +465,7 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
     assert.equal(movement.quantidade.integerValue, '10');
   });
   successful(await commit(productWrites(bProduct, 0, b, bEst, bSector), b.token));
-  await t.test('RNFB Android: contador double integral aceita cadastro e exclusão sem histórico', async () => {
+  await t.test('RNFB Android: contador double integral aceita cadastro e nega exclusão sem histórico', async () => {
     const id = randomUUID();
     const writes = productWrites(id, 0);
     writes[1].updateTransforms[0].increment = { doubleValue: 1.0 };
@@ -474,8 +474,8 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
     assert.equal(sector.quantidadeProdutos.doubleValue, 3);
     const decrement = sectorChange(aSector, id, -1);
     decrement.updateTransforms[0].increment = { doubleValue: -1.0 };
-    successful(await commit([{ delete: name('produtos', id) }, decrement]));
-    assert.equal((await request('GET', `/setores/${aSector}`, a.token)).data.fields.quantidadeProdutos.doubleValue, 2);
+    denied(await commit([{ delete: name('produtos', id) }, decrement]));
+    assert.equal((await request('GET', `/setores/${aSector}`, a.token)).data.fields.quantidadeProdutos.doubleValue, 3);
     assert.equal((await request('GET', `/movimentacoes/inicial_${id}`, 'owner')).status, 404);
   });
   for (const [label, quantity, mutate] of [
@@ -560,7 +560,8 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
   await t.test('query exata estabelecimento+setor retorna somente produtos A', async () => {
     const result = await request('POST', ':runQuery', a.token, queryProducts(aEst, aSector));
     successful(result);
-    assert.equal(result.data.filter((item) => item.document).length, 2);
+    // O produto usado no teste de contador permanece cadastrado: delete agora é negado.
+    assert.equal(result.data.filter((item) => item.document).length, 3);
   });
   await t.test('A não consulta B', async () => denied(await request('POST', ':runQuery', a.token, queryProducts(bEst, bSector))));
   await t.test('B não consulta A', async () => denied(await request('POST', ':runQuery', b.token, queryProducts(aEst, aSector))));
@@ -614,8 +615,8 @@ test('Etapa 6: produtos, estoque inicial atômico, cascade e RN-08', async (t) =
     assert.equal((await request('GET', `/movimentacoes/inicial_${positive}`, 'owner')).status, 200);
     denied(await request('DELETE', `/setores/${aSector}`, a.token));
   });
-  await t.test('excluir produto zero libera exclusão setor somente quando contador zerado', async () => {
-    successful(await commit([{ delete: name('produtos', zero) }, sectorChange(aSector, zero, -1)]));
+  await t.test('11A produto zero não é excluído e mantém bloqueio de setor', async () => {
+    denied(await commit([{ delete: name('produtos', zero) }, sectorChange(aSector, zero, -1)]));
     denied(await request('DELETE', `/setores/${aSector}`, a.token));
   });
 });
@@ -1058,9 +1059,9 @@ test('Etapa 10B: ciclo, histórico irreversível, legado, RN08 e isolamento', as
  await t.test('primeiro movimento exige marcador no mesmo commit',async()=>{const w=movement(zero);delete w[1].update.fields.possuiHistorico;w[1].updateMask.fieldPaths=w[1].updateMask.fieldPaths.filter(x=>x!=='possuiHistorico');denied(await commit(w));});
  await t.test('primeiro movimento false para true atômico',async()=>{ok(await commit(movement(zero)));assert.equal((await request('GET','/produtos/'+zero,a.token)).data.fields.possuiHistorico.booleanValue,true);});
  const disposable=randomUUID();ok(await commit(creation(disposable,0)));
- await t.test('delete sem histórico permitido com RN08',async()=>ok(await commit([{delete:path('produtos',disposable)},sectorChange(sa,disposable,-1)])));
+ await t.test('11A delete sem histórico negado com RN08',async()=>denied(await commit([{delete:path('produtos',disposable)},sectorChange(sa,disposable,-1)])));
  const disposableInactive=randomUUID();ok(await commit(creation(disposableInactive,0)));ok(await commit([inactive(disposableInactive)]));
- await t.test('delete inativo sem histórico permitido',async()=>ok(await commit([{delete:path('produtos',disposableInactive)},sectorChange(sa,disposableInactive,-1)])));
+ await t.test('11A delete inativo sem histórico negado',async()=>denied(await commit([{delete:path('produtos',disposableInactive)},sectorChange(sa,disposableInactive,-1)])));
  const legacy=randomUUID(),w=creation(legacy,0);for(const key of ['status','inativadoEm','inativadoPor','possuiHistorico'])delete w[0].update.fields[key];
  ok(await commit(w,'owner'));
  await t.test('delete legado sem marcador negado',async()=>denied(await commit([{delete:path('produtos',legacy)},sectorChange(sa,legacy,-1)])));
@@ -1071,4 +1072,37 @@ test('Etapa 10B: ciclo, histórico irreversível, legado, RN08 e isolamento', as
   await t.test(label+' nega inativação',async()=>denied(await commit([inactive(id)],token)));
   await t.test(label+' nega exclusão',async()=>denied(await commit([{delete:path('produtos',id)},sectorChange(s,id,-1)],token)));
  }
+});
+
+test('11A vendedor: schema, deltas, remoção, imutabilidade e isolamento',async t=>{
+ const a=await signup(),b=await signup(),ea=randomUUID(),eb=randomUUID();
+ const path=(c,id)=>`${database}/documents/${c}/${id}`,num=n=>({integerValue:String(n)}),stamp={timestampValue:'2026-10-01T12:00:00Z'};
+ const commit=(writes,token=a.token)=>request('POST',':commit',token,{writes});
+ const ok=r=>assert.equal(r.status,200,JSON.stringify(r.data));
+ ok(await commit(onboarding(a,ea)));ok(await commit(onboarding(b,eb),b.token));
+ async function fixture(user=a,est=ea){
+  const p=randomUUID(),s=randomUUID(),m=randomUUID(),initial='inicial_'+p;
+  const product={id:string(p),estabelecimentoId:string(est),setorId:string(s),nome:string('Produto'),quantidadeInicial:num(20),estoqueAtual:num(20),criadoEm:stamp,status:string('ativo'),inativadoEm:{nullValue:null},inativadoPor:{nullValue:null},possuiHistorico:{booleanValue:true},quantidadeMovimentacoes:num(1),movimentacaoIds:{arrayValue:{values:[string(initial)]}},ultimaMovimentacaoId:string(initial)};
+  ok(await commit([{update:{name:path('setores',s),fields:{id:string(s),estabelecimentoId:string(est),nome:string('Setor'),criadoEm:stamp,quantidadeProdutos:num(1),ultimaOperacaoProdutoId:string(p)}}},{update:{name:path('produtos',p),fields:product}},{update:{name:path('movimentacoes',initial),fields:{id:string(initial),estabelecimentoId:string(est),setorId:string(s),produtoId:string(p),tipo:string('entrada'),quantidade:num(20),observacao:string('Estoque inicial'),criadoPor:string(user.uid),criadoEm:stamp}}}],'owner'));
+  const transforms=[{fieldPath:'atualizadoEm',setToServerValue:'REQUEST_TIME'}];
+  const update=(c,id,fields,mask=Object.keys(fields))=>({update:{name:path(c,id),fields},updateMask:{fieldPaths:mask},updateTransforms:transforms});
+  const create=(vendor,tipo='saida')=>[{update:{name:path('movimentacoes',m),fields:{id:string(m),estabelecimentoId:string(est),produtoId:string(p),setorId:string(s),tipo:string(tipo),quantidade:num(4),criadoPor:string(user.uid),...(vendor===undefined?{}:{vendedorNome:vendor})}},updateTransforms:[{fieldPath:'criadoEm',setToServerValue:'REQUEST_TIME'}]},update('produtos',p,{estoqueAtual:num(tipo==='saida'?16:24),quantidadeMovimentacoes:num(2),movimentacaoIds:{arrayValue:{values:[string(initial),string(m)]}},ultimaMovimentacaoId:string(m)})];
+  return{p,s,m,initial,create,update};
+ }
+ for(const [label,value]of [['ausente',undefined],['válido',string('Carlos Henrique')],['80 caracteres',string('A'.repeat(80))]])await t.test('criação saída '+label,async()=>{const f=await fixture();ok(await commit(f.create(value)));const fields=(await request('GET','/movimentacoes/'+f.m,a.token)).data.fields;assert.equal('vendedorNome' in fields,value!==undefined);});
+ const invalid=[['vazio',string('')],['espaços',string('   ')],['tabulação',string('\t')],['NBSP',string('\u00a0')],['BOM',string('\ufeff')],['81 caracteres',string('A'.repeat(81))],['espaço inicial',string(' Carlos')],['espaço final',string('Carlos ')],['null',{nullValue:null}],['número',num(1)],['boolean',{booleanValue:true}],['lista',{arrayValue:{values:[string('Carlos')]}}],['mapa',{mapValue:{fields:{nome:string('Carlos')}}}]];
+ for(const [label,value]of invalid)await t.test('criação nega vendedor '+label,async()=>{const f=await fixture();denied(await commit(f.create(value)));});
+ for(const [label,value]of [['válido',string('Carlos')],['vazio',string('')],['null',{nullValue:null}]])await t.test('entrada nega vendedor '+label,async()=>{const f=await fixture();denied(await commit(f.create(value,'entrada')));});
+ await t.test('entrada sem vendedor preservada',async()=>{const f=await fixture();ok(await commit(f.create(undefined,'entrada')));denied(await commit([f.update('movimentacoes',f.m,{vendedorNome:string('Carlos')})]));});
+ const f=await fixture();ok(await commit(f.create()));
+ await t.test('saída antiga sem vendedor é legível',async()=>ok(await request('GET','/movimentacoes/'+f.m,a.token)));
+ for(const nome of ['Carlos Henrique','Joana'])await t.test('edição vendedor '+nome+' sem alteração de saldo',async()=>{ok(await commit([f.update('movimentacoes',f.m,{vendedorNome:string(nome)})]));assert.equal((await request('GET','/produtos/'+f.p,a.token)).data.fields.estoqueAtual.integerValue,'16');});
+ for(const [label,value]of invalid)await t.test('edição nega vendedor '+label,async()=>denied(await commit([f.update('movimentacoes',f.m,{vendedorNome:value})])));
+ await t.test('remoção real de vendedor sem saldo novo',async()=>{ok(await commit([f.update('movimentacoes',f.m,{},['vendedorNome'])]));assert.equal('vendedorNome' in (await request('GET','/movimentacoes/'+f.m,a.token)).data.fields,false);assert.equal((await request('GET','/produtos/'+f.p,a.token)).data.fields.estoqueAtual.integerValue,'16');});
+ await t.test('quantidade e vendedor exigem delta atômico',async()=>{const w=f.update('movimentacoes',f.m,{quantidade:num(6),vendedorNome:string('Carlos')});denied(await commit([w]));ok(await commit([w,f.update('produtos',f.p,{estoqueAtual:num(14),ultimaMovimentacaoId:string(f.m)})]));assert.equal((await request('GET','/produtos/'+f.p,a.token)).data.fields.estoqueAtual.integerValue,'14');});
+ await t.test('vendedor não autoriza alterar tipo nem saldo',async()=>{denied(await commit([f.update('movimentacoes',f.m,{tipo:string('entrada'),vendedorNome:string('Carlos')})]));denied(await commit([f.update('movimentacoes',f.m,{vendedorNome:string('Outro')}),f.update('produtos',f.p,{estoqueAtual:num(15),ultimaMovimentacaoId:string(f.m)})]));});
+ await t.test('whitelist não permite dados pessoais adicionais',async()=>{denied(await commit([f.update('movimentacoes',f.m,{vendedorEmail:string('extra@example.test')})]));});
+ const other=await fixture(b,eb);ok(await commit(other.create(string('Vendedor B')),b.token));
+ for(const [label,token,target]of [['B não lê/edita A',b.token,f],['A não lê/edita B',a.token,other],['anônimo',null,f]])await t.test(label,async()=>{denied(await request('GET','/movimentacoes/'+target.m,token));denied(await commit([target.update('movimentacoes',target.m,{vendedorNome:string('Ataque')})],token));});
+ for(const [label,changes]of [['ativo sem histórico',{possuiHistorico:{booleanValue:false},quantidadeInicial:num(0),estoqueAtual:num(0),quantidadeMovimentacoes:num(0),movimentacaoIds:{arrayValue:{values:[]}}}],['com histórico',{}],['inativo',{status:string('inativo'),inativadoEm:stamp,inativadoPor:string(a.uid)}]])await t.test('delete produto negado '+label,async()=>{const p=await fixture();if(Object.keys(changes).length)ok(await commit([p.update('produtos',p.p,changes)],'owner'));denied(await request('DELETE','/produtos/'+p.p,a.token));denied(await commit([{delete:path('produtos',p.p)},p.update('setores',p.s,{quantidadeProdutos:num(0),ultimaOperacaoProdutoId:string(p.p)})]));denied(await request('DELETE','/setores/'+p.s,a.token));});
 });

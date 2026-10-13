@@ -16,6 +16,7 @@ import { FormButton, authStyles } from '../../components/AuthFormLayout';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
 import { LoadingState } from '../../components/ui/ScreenState';
 import ConfirmModal from '../../components/ConfirmModal';
+import { VendedorLinha } from '../../components/ui/VendedorLinha';
 
 const formatoData = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 const LinhaMovimento = memo(function LinhaMovimento({ item, editar, excluir, disabled }: { item: Movimentacao; editar: (m: Movimentacao) => void; excluir: (m: Movimentacao) => void; disabled: boolean }) {
@@ -23,6 +24,7 @@ const LinhaMovimento = memo(function LinhaMovimento({ item, editar, excluir, dis
     <Text style={styles.nome}>{item.tipo === 'entrada' ? 'Entrada' : 'Saída'} {item.tipo === 'entrada' ? '+' : '-'}{item.quantidade}</Text>
     <Text style={styles.texto}>{formatoData.format(item.criadoEm)}</Text>
     <Text style={styles.texto}>{item.observacao || 'Sem observação'}</Text>
+    <VendedorLinha movimento={item} />
     <View style={styles.acoes}>
       <View style={styles.acao}><FormButton variant="secondary" label="Editar" disabled={disabled} onPress={() => editar(item)} /></View>
       <View style={styles.acao}><FormButton variant="danger" label="Excluir" disabled={disabled} onPress={() => excluir(item)} /></View>
@@ -78,7 +80,7 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
         <View style={styles.acao}><FormButton label="Saída" disabled={excluindo || !produtoAtivo(produto)} onPress={() => navigation.navigate('MovimentacaoForm', { setor, produtoId, tipo: 'saida' })} /></View>
       </View>
       <FormButton variant="secondary" label="Editar produto" disabled={excluindo} onPress={() => navigation.navigate('ProdutoForm', { setor, produto: dadosDeRota(produto) })} />
-      <ProdutoLifecycleActions produto={produto} contexto={valido ? contexto : null} removido={() => navigation.goBack()} />
+      <ProdutoLifecycleActions produto={produto} contexto={valido ? contexto : null} />
     </> : null}
     <Text style={styles.titulo}>Histórico de movimentações</Text>
     {historico.estado.status === 'loading' ? <LoadingState /> : null}

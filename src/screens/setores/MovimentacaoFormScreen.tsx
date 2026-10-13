@@ -9,6 +9,8 @@ import { lerQuantidadeFormulario } from '../../utils/produtos';
 import { normalizarMovimentacao, mensagemErroMovimentacao } from '../../utils/movimentacoes';
 import { registrarEntrada, registrarSaida, editarMovimentacao } from '../../services/movimentacoes/movimentacoesService';
 import { useFeedback } from '../../components/ui/FeedbackProvider';
+import { AppInput } from '../../components/ui/AppInput';
+import { AppCheckbox } from '../../components/ui/AppCheckbox';
 
 export default function MovimentacaoFormScreen({ route, navigation }: StockScreenProps<'MovimentacaoForm'>) {
   const { produtoId, setor, tipo, movimentacao } = route.params;
@@ -20,6 +22,8 @@ export default function MovimentacaoFormScreen({ route, navigation }: StockScree
   const valido = contexto !== null && contexto.estabelecimentoId === setor.estabelecimentoId && !!produto && produtoAtivo(produto);
   const [quantidade, setQuantidade] = useState(movimentacao ? String(movimentacao.quantidade) : '');
   const [observacao, setObservacao] = useState(movimentacao?.observacao ?? '');
+  const [adicionarVendedor, setAdicionarVendedor] = useState(tipo === 'saida' && !!movimentacao?.vendedorNome);
+  const [vendedorNome, setVendedorNome] = useState(movimentacao?.vendedorNome ?? '');
   const [erro, setErro] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const ocupado = useRef(false), ativo = useRef(true);
@@ -27,13 +31,14 @@ export default function MovimentacaoFormScreen({ route, navigation }: StockScree
   async function salvar() {
     if (ocupado.current || !contexto || !valido) return;
     let dados;
-    try { dados = normalizarMovimentacao({ quantidade: lerQuantidadeFormulario(quantidade, 'A quantidade'), observacao }); }
+    try { dados = normalizarMovimentacao({ quantidade: lerQuantidadeFormulario(quantidade, 'A quantidade'), observacao,
+      ...(tipo === 'saida' && adicionarVendedor ? { vendedorNome } : {}) }, tipo); }
     catch (e) { setErro(mensagemErroMovimentacao(e, !!movimentacao)); return; }
     ocupado.current = true; setSalvando(true); setErro(null);
     try {
-      const registrar = tipo === 'entrada' ? registrarEntrada : registrarSaida;
       if (movimentacao) await editarMovimentacao(contexto, produtoId, setor.id, movimentacao.id, dados);
-      else await registrar(contexto, produtoId, setor.id, dados);
+      else if (tipo === 'entrada') await registrarEntrada(contexto, produtoId, setor.id, { quantidade: dados.quantidade, observacao: dados.observacao });
+      else await registrarSaida(contexto, produtoId, setor.id, dados);
       if (ativo.current) {
         feedback(movimentacao ? 'Movimentação atualizada com sucesso.' : tipo === 'entrada' ? 'Entrada registrada com sucesso.' : 'Saída registrada com sucesso.');
         navigation.goBack();
@@ -51,6 +56,13 @@ export default function MovimentacaoFormScreen({ route, navigation }: StockScree
     <Text style={authStyles.label}>Observação</Text>
     <TextInput accessibilityLabel="Observação" value={observacao} onChangeText={t => { setObservacao(t); setErro(null); }} style={[authStyles.input, { minHeight: 100 }]}
       multiline textAlignVertical="top" maxLength={2000} placeholder="Opcional" editable={!salvando && valido} />
+    {tipo === 'saida' ? <>
+      <AppCheckbox label="Adicionar vendedor" checked={adicionarVendedor} disabled={salvando || !valido}
+        onChange={checked => { setAdicionarVendedor(checked); setErro(null); }} />
+      {adicionarVendedor ? <AppInput label="Nome do vendedor" value={vendedorNome}
+        onChangeText={nome => { setVendedorNome(nome); setErro(null); }} editable={!salvando && valido}
+        autoCapitalize="none" keyboardType="default" placeholder="Até 80 caracteres" /> : null}
+    </> : null}
     {salvando ? <Text style={authStyles.subtitle}>Aguardando confirmação do servidor...</Text> : null}
     <FormButton label={salvando ? 'Salvando...' : movimentacao ? 'Salvar alterações' : tipo === 'entrada' ? 'Confirmar entrada' : 'Confirmar saída'}
       loading={salvando} onPress={() => { void salvar(); }} disabled={salvando || !valido} />

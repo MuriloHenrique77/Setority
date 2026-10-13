@@ -4,23 +4,20 @@ import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { AuthenticatedTabParamList } from '../../navigation/types';
 import { useSession } from '../../session/SessionProvider';
 import { useVisaoEstoque } from '../../services/visaoEstoque/useVisaoEstoque';
-import { listarMovimentosGlobais, resumirHome } from '../../utils/visaoEstoque';
-import { dadosDeRota } from '../../navigation/dadosDeRota';
+import { resumirHome } from '../../utils/visaoEstoque';
 import { colors, spacing, typography } from '../../theme';
 import { AppScreen } from '../../components/ui/AppScreen';
 import { AppCard } from '../../components/ui/AppCard';
 import { AppButton } from '../../components/ui/AppButton';
-import { EmptyState, ErrorState, LoadingState } from '../../components/ui/ScreenState';
+import { ErrorState, LoadingState } from '../../components/ui/ScreenState';
 import { SectionHeader } from '../../components/ui/SectionHeader';
 import { StatusBadge } from '../../components/ui/StatusBadge';
-import { MovimentoCard } from '../../components/MovimentoCard';
 
 export default function HomeScreen({ navigation }: BottomTabScreenProps<AuthenticatedTabParamList, 'Inicio'>) {
   const { estado: sessao } = useSession();
-  const { estado, estabelecimentoId, tentarNovamente } = useVisaoEstoque(5);
+  const { estado, estabelecimentoId, tentarNovamente } = useVisaoEstoque(0);
   const dados = estado.status === 'data' ? estado.dados : undefined;
   const resumo = useMemo(() => dados ? resumirHome(estabelecimentoId, dados) : undefined, [dados, estabelecimentoId]);
-  const recentes = useMemo(() => dados ? listarMovimentosGlobais(estabelecimentoId, dados) : [], [dados, estabelecimentoId]);
   const selecionar = (acao: 'produto' | 'entrada' | 'saida') => navigation.navigate('Estoque', { screen: 'SelecaoEstoque', params: { acao }, initial: false });
   return <AppScreen>
     <Text style={styles.caption}>Bem-vindo ao seu estoque</Text>
@@ -47,12 +44,6 @@ export default function HomeScreen({ navigation }: BottomTabScreenProps<Authenti
       <View style={styles.actions}><AppButton label="Novo produto" onPress={() => selecionar('produto')} />
         <View style={styles.actionRow}><View style={styles.action}><AppButton variant="secondary" label="Entrada" onPress={() => selecionar('entrada')} /></View>
           <View style={styles.action}><AppButton variant="secondary" label="Saída" onPress={() => selecionar('saida')} /></View></View></View>
-      <SectionHeader title="Movimentações recentes" subtitle="As cinco mais recentes do estabelecimento." />
-      {recentes.length ? recentes.map(registro => <MovimentoCard key={registro.movimento.id} registro={registro}
-        abrir={registro.produto && registro.setor ? () => navigation.navigate('Estoque', { screen: 'ProdutoDetalhes',
-          params: { setor: dadosDeRota(registro.setor!), produtoId: registro.produto!.id }, initial: false }) : undefined} />)
-        : <EmptyState title="Sem movimentações" message="Registre uma entrada ou saída para acompanhar o histórico." />}
-      <AppButton variant="text" label="Ver movimentações" onPress={() => navigation.navigate('Movimentacoes')} />
     </> : null}
   </AppScreen>;
 }

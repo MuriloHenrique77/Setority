@@ -14,7 +14,7 @@ service cloud.firestore {
     // tipo entrada, quantidade > 0, observacao Estoque inicial, criadoPor, criadoEm.
     // Etapa 10B: status ativo/inativo; inativadoEm timestamp|null; inativadoPor UID|null.
     // possuiHistorico bool irreversível; criação exige todos os campos de ciclo.
-    // Legado sem status é ativo; marcador ausente impede exclusão permanente.
+    // Legado sem status é ativo; Etapa 11A: delete de produto sempre negado.
     // Setor: quantidadeProdutos e ultimaOperacaoProdutoId são campos técnicos.
     // Contador aceita int ou float integral: RNFB Android serializa increment como double.
     // Legado sem contador equivale a zero. Cada commit muda um produto por setor.
@@ -23,7 +23,8 @@ service cloud.firestore {
     // Movimentos manuais: id obrigatório, mesmo produto/setor/estabelecimento,
     // tipo entrada/saida, quantidade inteira >0, observacao opcional <=2000,
     // criadoPor autenticado e criadoEm serverTimestamp. Etapa 7B: update restrito a
-    // quantidade/observacao/atualizadoEm; delete individual exige delta atômico.
+    // quantidade/observacao/vendedorNome/atualizadoEm; delete individual exige delta atômico.
+    // vendedorNome opcional exclusivamente em saída: string trim, 1..80 caracteres.
     // ultimaMovimentacaoId identifica também edição/exclusão; pode apontar para ID removido.
     function signedIn() {
       return request.auth != null;
@@ -213,10 +214,8 @@ service cloud.firestore {
       let before = productCount(resource.data);
       let after = productCount(request.resource.data);
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly(['quantidadeProdutos', 'ultimaOperacaoProdutoId', 'atualizadoEm'])
-        && ((after == before + 1 && !exists(path) && getAfter(path) != null
-          && getAfter(path).data.setorId == setorId && getAfter(path).data.estabelecimentoId == resource.data.estabelecimentoId)
-          || (after == before - 1 && exists(path) && getAfter(path) == null
-          && get(path).data.setorId == setorId && get(path).data.estabelecimentoId == resource.data.estabelecimentoId));
+        && after == before + 1 && !exists(path) && getAfter(path) != null
+        && getAfter(path).data.setorId == setorId && getAfter(path).data.estabelecimentoId == resource.data.estabelecimentoId;
     }
 
     function productSectorChange(data, delta) {
@@ -228,9 +227,16 @@ service cloud.firestore {
         && getAfter(path).data.ultimaOperacaoProdutoId == data.id;
     }
 
+    function validVendor(data) {
+      return !('vendedorNome' in data) || (data.tipo == 'saida'
+        && data.vendedorNome is string && data.vendedorNome.size() > 0 && data.vendedorNome.size() <= 80
+        && data.vendedorNome.matches('^[^\\s\\p{Z}\\x{FEFF}]([\\s\\S]*[^\\s\\p{Z}\\x{FEFF}])?$'));
+    }
+
     function validNormalMovement(data, product, id) {
       return data.keys().hasAll(['id', 'estabelecimentoId', 'produtoId', 'setorId', 'tipo', 'quantidade', 'criadoPor', 'criadoEm'])
-        && data.keys().hasOnly(['id', 'estabelecimentoId', 'produtoId', 'setorId', 'tipo', 'quantidade', 'observacao', 'criadoPor', 'criadoEm'])
+        && data.keys().hasOnly(['id', 'estabelecimentoId', 'produtoId', 'setorId', 'tipo', 'quantidade', 'observacao', 'vendedorNome', 'criadoPor', 'criadoEm'])
+        && validVendor(data)
         && validId(data.id) && data.id == id && id != 'inicial_' + product.id
         && data.estabelecimentoId == product.estabelecimentoId
         && data.produtoId == product.id && data.setorId == product.setorId
@@ -263,9 +269,10 @@ service cloud.firestore {
     }
     function validMovementEdit(before, after) {
       return after.keys().hasAll(['estabelecimentoId', 'produtoId', 'setorId', 'tipo', 'quantidade', 'criadoPor', 'criadoEm'])
-        && after.keys().hasOnly(['id', 'estabelecimentoId', 'produtoId', 'setorId', 'tipo', 'quantidade', 'observacao', 'criadoPor', 'criadoEm', 'atualizadoEm'])
+        && after.keys().hasOnly(['id', 'estabelecimentoId', 'produtoId', 'setorId', 'tipo', 'quantidade', 'observacao', 'vendedorNome', 'criadoPor', 'criadoEm', 'atualizadoEm'])
+        && validVendor(after)
         && after.tipo in ['entrada', 'saida']
-        && after.diff(before).affectedKeys().hasOnly(['quantidade', 'observacao', 'atualizadoEm'])
+        && after.diff(before).affectedKeys().hasOnly(['quantidade', 'observacao', 'vendedorNome', 'atualizadoEm'])
         && validQuantity(after.quantidade) && after.quantidade > 0
         && (!('observacao' in after) || (after.observacao is string && after.observacao.size() > 0 && after.observacao.size() <= 2000
           && after.observacao.matches('^[^\\s\\p{Z}\\x{FEFF}]([\\s\\S]*[^\\s\\p{Z}\\x{FEFF}])?$')))
@@ -392,12 +399,7 @@ service cloud.firestore {
           || validLifecycleChange(resource.data, request.resource.data)
           || validProductMovementChange(resource.data, request.resource.data))
         && request.resource.data.atualizadoEm == request.time;
-      allow delete: if belongsToUser(resource.data.estabelecimentoId)
-        && validMovementRegistry(resource.data)
-        && productSectorChange(resource.data, -1)
-        && resource.data.get('possuiHistorico', true) == false
-        && resource.data.quantidadeInicial == 0 && resource.data.estoqueAtual == 0
-        && movementCount(resource.data) == 0 && movementIds(resource.data).size() == 0;
+      allow delete: if false;
     }
 
     match /movimentacoes/{movimentacaoId} {

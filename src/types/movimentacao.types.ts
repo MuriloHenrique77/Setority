@@ -8,10 +8,11 @@ export type Movimentacao = {
   readonly tipo: TipoMovimentacao;
   quantidade: number;
   observacao?: string;
+  vendedorNome?: string;
   criadoPor: string;
   criadoEm: Date;
   atualizadoEm?: Date;
 };
 
 /** A edição não permite alterar tipo, produto ou estabelecimento. */
-export type EdicaoMovimentacao = Pick<Movimentacao, 'quantidade' | 'observacao'>;
+export type EdicaoMovimentacao = Pick<Movimentacao, 'quantidade' | 'observacao' | 'vendedorNome'>;

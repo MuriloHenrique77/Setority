@@ -17,7 +17,7 @@ test('10B primeira entrada marca histórico atomicamente; excluir último movime
   assert.equal(a.docs.get('produtos/p1').estoqueAtual, 0);
   assert.equal(a.docs.get('produtos/p1').quantidadeMovimentacoes, 0);
   assert.equal(a.docs.get('produtos/p1').possuiHistorico, true);
-  await assert.rejects(a.produtos.removerProduto(contexto, 'p1'), /possui histórico/);
+  assert.equal(a.produtos.removerProduto, undefined);
 });
 test('10B inativação positiva preserva campos/histórico/RN08; bloqueia três mutações; reativação restaura uso', async () => {
   const a = ambiente(); await a.produtos.criarProduto(contexto, 's1', { nome: 'Produto', quantidadeInicial: 10, estoqueMinimo: 12 });
@@ -40,17 +40,17 @@ test('10B legado permanece utilizável sem status/marcador, inativável, reativ�
   const raw = a.docs.get('produtos/p1'); for (const c of ['status', 'possuiHistorico', 'inativadoEm', 'inativadoPor']) delete raw[c];
   const converter = a.carregar('src/services/firebase/converters/produto.ts').converterProduto;
   const p = converter(raw, 'p1', 'est_a', 's1'); assert.equal(p.status, 'ativo'); assert.equal(p.possuiHistorico, undefined);
-  await assert.rejects(a.produtos.removerProduto(contexto, 'p1'), /produto antigo/);
+  assert.equal(a.produtos.removerProduto, undefined);
   await a.produtos.inativarProduto(contexto, 'p1'); await a.produtos.reativarProduto(contexto, 'p1');
-  await assert.rejects(a.produtos.removerProduto(contexto, 'p1'), /produto antigo/);
+  assert.equal(a.produtos.removerProduto, undefined);
   await a.movimentos.registrarEntrada(contexto, 'p1', 's1', { quantidade: 1 }); assert.equal(raw.possuiHistorico, undefined);
   assert.equal(a.docs.get('produtos/p1').possuiHistorico, true);
 });
-test('10B inativo sem histórico pode ser excluído sem cascade, decrementando RN08', async () => {
+test('11A inativo sem histórico não expõe exclusão e preserva RN08', async () => {
   const a = ambiente(); await a.produtos.criarProduto(contexto, 's1', { nome: 'Zero', quantidadeInicial: 0 });
-  await a.produtos.inativarProduto(contexto, 'p1'); await a.produtos.removerProduto(contexto, 'p1');
-  assert.equal(a.commits.at(-1).filter(w => w.type === 'delete').length, 1); assert.equal(a.docs.get('setores/s1').quantidadeProdutos, 0);
-  await a.setores.removerSetor(contexto, 's1'); assert.equal(a.docs.has('setores/s1'), false);
+  await a.produtos.inativarProduto(contexto, 'p1'); assert.equal(a.produtos.removerProduto, undefined);
+  assert.equal(a.commits.at(-1).filter(w => w.type === 'delete').length, 0); assert.equal(a.docs.get('setores/s1').quantidadeProdutos, 1);
+  await assert.rejects(a.setores.removerSetor(contexto, 's1'), /possui produtos/); assert.equal(a.docs.has('setores/s1'), true);
 });
 test('10B conversor recusa ciclo malformado e rotas não carregam data de inativação', async () => {
   const a = ambiente(); await a.produtos.criarProduto(contexto, 's1', { nome: 'Produto', quantidadeInicial: 0 });

@@ -35,7 +35,7 @@ test('movimentos globais ordenam datas/empates sem mutação e associam nomes se
 });
 const vazio=(cache=false)=>({docs:[],metadata:{fromCache:cache,hasPendingWrites:false}});
 function iniciar(sync=false,limit=5){const e=ambiente(sync),recebidos=[],erros=[];const stop=e.load('src/services/visaoEstoque/visaoEstoqueService.ts').observarVisaoEstoque({uid:'a',estabelecimentoId:'est'},limit,d=>recebidos.push(d),e=>erros.push(e));return{...e,recebidos,erros,stop};}
-test('Home usa três consultas isoladas, limite 5 e publicação somente após três snapshots; cleanup idempotente',()=>{
+test('Histórico global usa três consultas isoladas, limite 5 e publicação somente após três snapshots; cleanup idempotente',()=>{
  const e=iniciar();assert.equal(e.listeners.length,3);for(const l of e.listeners)assert.deepEqual(l.query.filters[0],{field:'estabelecimentoId',operator:'==',value:'est'});
  assert.deepEqual(e.listeners[2].query.filters.slice(1),[{field:'criadoEm',direction:'desc'},{limit:5}]);
  e.listeners[0].receive(vazio());e.listeners[1].receive(vazio());assert.equal(e.recebidos.length,0);e.listeners[2].receive(vazio(true));assert.equal(e.recebidos[0].emCache,true);
@@ -47,7 +47,7 @@ test('erro, documento inconsistente, aquisição síncrona e troca de conta ence
  const b=iniciar();b.auth.currentUser={uid:'b'};b.listeners[0].receive(vazio());assert.equal(b.recebidos.length,0);assert.equal(b.erros.length,1);assert.ok(b.listeners.every(l=>l.closed===1));
  const c=iniciar();c.listeners[0].receive({docs:[{data:()=>({setorId:42}),metadata:{}}],metadata:{}});assert.equal(c.erros.length,1);assert.ok(c.listeners.every(l=>l.closed===1));
  const d=iniciar(true);assert.equal(d.listeners.length,1);assert.equal(d.listeners[0].closed,1);d.stop();
- const e=ambiente();assert.throws(()=>e.load('src/services/visaoEstoque/visaoEstoqueService.ts').observarVisaoEstoque({uid:'a',estabelecimentoId:'est'},0,()=>{},()=>{}));assert.equal(e.listeners.length,0);
+ const e=ambiente();assert.throws(()=>e.load('src/services/visaoEstoque/visaoEstoqueService.ts').observarVisaoEstoque({uid:'a',estabelecimentoId:'est'},-1,()=>{},()=>{}));assert.equal(e.listeners.length,0);
 });
 test('erros da visão de estoque não expõem mensagens ou códigos internos',()=>{
  assert.match(u.mensagemErroVisaoEstoque({code:'firestore/unavailable'}),/conexão/);assert.match(u.mensagemErroVisaoEstoque({code:'firestore/permission-denied'}),/sessão/);
@@ -72,4 +72,13 @@ test('hook faz cleanup em blur, limite, sessão e retry; esconde dados antigos a
  session={status:'authenticatedReady',conta:{uid:'b'},perfil:{estabelecimentoId:'outro'}};assert.equal(render(50).estado.status,'loading');flush();assert.equal(calls[1].closed,1);
  calls[1].receive(dados);assert.equal(render(50).estado.status,'loading');calls[2].error({code:'firestore/unavailable'});assert.equal(render(50).estado.status,'error');render(50).tentarNovamente();render(50);flush();assert.equal(calls[2].closed,1);
  session={status:'unauthenticated'};assert.equal(render(50).estado.status,'loading');flush();assert.equal(calls[3].closed,1);assert.equal(calls.length,4);
+});
+
+test('11A Home assina apenas produtos/setores, sem query de movimentos; cleanup e cache corretos',()=>{
+ const e=iniciar(false,0);assert.equal(e.listeners.length,2);
+ e.listeners[0].receive(vazio());assert.equal(e.recebidos.length,0);
+ e.listeners[1].receive(vazio());assert.equal(e.recebidos.length,1);assert.equal(e.recebidos[0].emCache,false);assert.deepEqual(e.recebidos[0].movimentos,[]);
+ e.stop();e.stop();assert.ok(e.listeners.every(l=>l.closed===1));
+ e.listeners[0].receive(vazio());assert.equal(e.recebidos.length,1);
+ const cache=iniciar(false,0);cache.listeners[0].receive(vazio(true));cache.listeners[1].receive(vazio());assert.equal(cache.recebidos[0].emCache,true);cache.stop();
 });

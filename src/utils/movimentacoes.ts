@@ -3,16 +3,24 @@ import { inteiroEstoque } from './produtos';
 
 // Registro técnico compatível com as Rules existentes; não limita o histórico.
 export const LIMITE_REGISTRO_MOVIMENTACOES = 6;
-export type DadosMovimentacao = { quantidade: number; observacao?: string };
+export type DadosMovimentacao = { quantidade: number; observacao?: string; vendedorNome?: string };
+export type DadosEntrada = Omit<DadosMovimentacao, 'vendedorNome'> & { vendedorNome?: never };
 export type RegistroMovimentacoes = { quantidadeMovimentacoes: number; movimentacaoIds: string[]; ultimaMovimentacaoId?: string };
 const idValido = (valor: unknown): valor is string => typeof valor === 'string' &&
   (/^[a-zA-Z0-9_-]{1,128}$/.test(valor) || /^inicial_[a-zA-Z0-9_-]{1,128}$/.test(valor));
 
-export function normalizarMovimentacao(dados: DadosMovimentacao): DadosMovimentacao {
+export function normalizarMovimentacao(dados: DadosMovimentacao, tipo?: TipoMovimentacao): DadosMovimentacao {
   if (!inteiroEstoque(dados.quantidade) || dados.quantidade === 0) throw new Error('A quantidade deve ser um inteiro maior que zero, até 9007199254740991.');
   const observacao = dados.observacao?.trim();
   if (observacao && observacao.length > 2000) throw new Error('A observação deve ter no máximo 2000 caracteres.');
-  return { quantidade: dados.quantidade, ...(observacao ? { observacao } : {}) };
+  let vendedorNome: string | undefined;
+  if (dados.vendedorNome !== undefined) {
+    if (tipo !== 'saida') throw new Error('Vendedor só pode ser informado em saídas.');
+    if (typeof dados.vendedorNome !== 'string' || !dados.vendedorNome.trim()) throw new Error('Informe o nome do vendedor.');
+    vendedorNome = dados.vendedorNome.trim();
+    if (vendedorNome.length > 80) throw new Error('O nome do vendedor deve ter no máximo 80 caracteres.');
+  }
+  return { quantidade: dados.quantidade, ...(observacao ? { observacao } : {}), ...(vendedorNome ? { vendedorNome } : {}) };
 }
 
 export function calcularNovoEstoque(estoque: number, tipo: TipoMovimentacao, quantidade: number): number {

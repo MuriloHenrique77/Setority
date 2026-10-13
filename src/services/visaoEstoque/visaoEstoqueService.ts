@@ -8,16 +8,16 @@ import { converterMovimentacao } from '../firebase/converters/movimentacao';
 import type { ContextoProdutos } from '../../utils/produtos';
 import type { DadosVisaoEstoque } from '../../types/visaoEstoque.types';
 
-/** Três consultas por tela, sem N+1. Reutiliza conversores e a projeção de estoque existente. */
+/** Limite zero: somente produtos e setores; positivo: acrescenta histórico global paginado. */
 export function observarVisaoEstoque(c: ContextoProdutos, maxMovimentos: number,
   receber: (dados: DadosVisaoEstoque) => void, erro: (e: unknown) => void): () => void {
-  if (!Number.isSafeInteger(maxMovimentos) || maxMovimentos < 1) throw new Error('Limite inválido.');
+  if (!Number.isSafeInteger(maxMovimentos) || maxMovimentos < 0) throw new Error('Limite inválido.');
   function validarSessao() {
     if (!c.estabelecimentoId || obterAuth().currentUser?.uid !== c.uid) throw new Error('Sessão inválida.');
   }
   validarSessao();
-  const db = obterFirestore(), dados: Partial<DadosVisaoEstoque> = {};
-  const cache = { produtos: true, setores: true, movimentos: true };
+  const db = obterFirestore(), dados: Partial<DadosVisaoEstoque> = maxMovimentos === 0 ? { movimentos: [] } : {};
+  const cache = { produtos: true, setores: true, movimentos: maxMovimentos > 0 };
   const listeners: Array<() => void> = [];
   let ativo = true;
   function parar() { ativo = false; for (const off of listeners.splice(0)) off(); }
@@ -52,7 +52,7 @@ export function observarVisaoEstoque(c: ContextoProdutos, maxMovimentos: number,
       dados.setores = s.docs.map(d => converterSetor(d.data({ serverTimestamps: 'estimate' }), d.id, c.estabelecimentoId, d.metadata.hasPendingWrites));
       cache.setores = s.metadata.fromCache || s.metadata.hasPendingWrites;
     });
-    registrar(COLLECTIONS.movimentacoes, s => {
+    if (maxMovimentos > 0) registrar(COLLECTIONS.movimentacoes, s => {
       dados.movimentos = s.docs.map(d => {
         const data: Record<string, unknown> = d.data({ serverTimestamps: 'estimate' });
         if (typeof data.produtoId !== 'string' || typeof data.setorId !== 'string') throw new Error('Vínculo inválido.');

@@ -5,7 +5,7 @@ import { COLLECTIONS } from '../firebase/collections';
 import { converterProduto } from '../firebase/converters/produto';
 import { converterMovimentacao } from '../firebase/converters/movimentacao';
 import { normalizarMovimentacao, calcularNovoEstoque, lerRegistroMovimentacoes, acrescentarMovimentacao, ordenarMovimentacoes, calcularEstoqueEdicao, calcularEstoqueExclusao, retirarMovimentacao } from '../../utils/movimentacoes';
-import type { DadosMovimentacao } from '../../utils/movimentacoes';
+import type { DadosMovimentacao, DadosEntrada } from '../../utils/movimentacoes';
 import type { ContextoProdutos } from '../../utils/produtos';
 import type { Movimentacao, TipoMovimentacao } from '../../types/movimentacao.types';
 import { validarProdutoAtivo } from '../../utils/cicloProduto';
@@ -29,7 +29,7 @@ export function observarMovimentacoesProduto(c: ContextoProdutos, produtoId: str
 
 async function registrar(c: ContextoProdutos, produtoId: string, setorId: string, tipo: TipoMovimentacao, dados: DadosMovimentacao): Promise<void> {
   validarContexto(c);
-  const normalizado = normalizarMovimentacao(dados);
+  const normalizado = normalizarMovimentacao(dados, tipo);
   const db = obterFirestore();
   // ID estável nas reavaliações da mesma transaction; nenhuma fila manual/offline.
   const movimentoRef = doc(collection(db, COLLECTIONS.movimentacoes));
@@ -42,7 +42,7 @@ async function registrar(c: ContextoProdutos, produtoId: string, setorId: string
     if (!dadosProduto) throw new Error('Produto não encontrado.');
     const produto = converterProduto(dadosProduto, produtoId, c.estabelecimentoId, setorId);
     validarProdutoAtivo(produto);
-    const quantidade = normalizarMovimentacao(normalizado).quantidade;
+    const quantidade = normalizado.quantidade;
     const estoqueAtual = calcularNovoEstoque(produto.estoqueAtual, tipo, quantidade);
     const registro = acrescentarMovimentacao(lerRegistroMovimentacoes(dadosProduto, produtoId), movimentoRef.id);
     validarContexto(c);
@@ -51,18 +51,18 @@ async function registrar(c: ContextoProdutos, produtoId: string, setorId: string
     t.update(produtoRef, { estoqueAtual, possuiHistorico: true, atualizadoEm: serverTimestamp(), ...registro });
   });
 }
-export function registrarEntrada(c: ContextoProdutos, produtoId: string, setorId: string, d: DadosMovimentacao): Promise<void> { return registrar(c, produtoId, setorId, 'entrada', d); }
+export function registrarEntrada(c: ContextoProdutos, produtoId: string, setorId: string, d: DadosEntrada): Promise<void> { return registrar(c, produtoId, setorId, 'entrada', d); }
 export function registrarSaida(c: ContextoProdutos, produtoId: string, setorId: string, d: DadosMovimentacao): Promise<void> { return registrar(c, produtoId, setorId, 'saida', d); }
 
 async function alterar(c: ContextoProdutos, produtoId: string, setorId: string, movimentoId: string, dados?: DadosMovimentacao): Promise<void> {
   validarContexto(c);
-  const normalizado = dados === undefined ? undefined : normalizarMovimentacao(dados);
   const db = obterFirestore(), movimentoRef = doc(db, COLLECTIONS.movimentacoes, movimentoId), produtoRef = doc(db, COLLECTIONS.produtos, produtoId);
   await runTransaction(db, async t => {
     validarContexto(c);
     const movimentoSnapshot = await t.get(movimentoRef);
     if (!movimentoSnapshot.exists()) throw new Error('Movimentação não encontrada. Atualize o histórico.');
     const movimento = converterMovimentacao(movimentoSnapshot.data(), movimentoId, c.estabelecimentoId, produtoId, setorId);
+    const normalizado = dados === undefined ? undefined : normalizarMovimentacao(dados, movimento.tipo);
     const produtoSnapshot = await t.get(produtoRef);
     const dadosProduto = produtoSnapshot.data();
     if (!produtoSnapshot.exists() || !dadosProduto) throw new Error('Produto não encontrado.');
@@ -71,7 +71,8 @@ async function alterar(c: ContextoProdutos, produtoId: string, setorId: string, 
     validarContexto(c);
     if (normalizado) {
       const estoqueAtual = calcularEstoqueEdicao(produto.estoqueAtual, movimento.tipo, movimento.quantidade, normalizado.quantidade);
-      t.update(movimentoRef, { quantidade: normalizado.quantidade, observacao: normalizado.observacao ?? deleteField(), atualizadoEm: serverTimestamp() });
+      t.update(movimentoRef, { quantidade: normalizado.quantidade, observacao: normalizado.observacao ?? deleteField(),
+        vendedorNome: normalizado.vendedorNome ?? deleteField(), atualizadoEm: serverTimestamp() });
       if (normalizado.quantidade !== movimento.quantidade) t.update(produtoRef, { estoqueAtual, ultimaMovimentacaoId: movimentoId, atualizadoEm: serverTimestamp() });
     } else {
       const estoqueAtual = calcularEstoqueExclusao(produto.estoqueAtual, movimento.tipo, movimento.quantidade);

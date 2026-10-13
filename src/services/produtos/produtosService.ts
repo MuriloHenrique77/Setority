@@ -4,11 +4,9 @@ import { obterAuth } from '../firebase/auth';
 import { obterFirestore } from '../firebase/firestore';
 import { COLLECTIONS } from '../firebase/collections';
 import { converterProduto } from '../firebase/converters/produto';
-import { inteiroEstoque, normalizarNovoProduto, normalizarEdicaoProduto, ordenarProdutos } from '../../utils/produtos';
+import { normalizarNovoProduto, normalizarEdicaoProduto, ordenarProdutos } from '../../utils/produtos';
 import type { ContextoProdutos, DadosNovoProduto, DadosEdicaoProduto } from '../../utils/produtos';
 import type { Produto } from '../../types/produto.types';
-import { lerRegistroMovimentacoes } from '../../utils/movimentacoes';
-import { validarExclusaoPermanente } from '../../utils/cicloProduto';
 
 function validarContexto(contexto: ContextoProdutos) {
   if (obterAuth().currentUser?.uid !== contexto.uid || !contexto.estabelecimentoId) throw new Error('Sessão inválida.');
@@ -69,28 +67,6 @@ export async function atualizarProduto(contexto: ContextoProdutos, id: string, d
   await updateDoc(doc(obterFirestore(), COLLECTIONS.produtos, id), { nome: normalizado.nome,
     descricao: normalizado.descricao ?? deleteField(), estoqueMinimo: normalizado.estoqueMinimo ?? deleteField(),
     atualizadoEm: serverTimestamp() });
-}
-
-export async function removerProduto(contexto: ContextoProdutos, id: string): Promise<void> {
-  validarContexto(contexto);
-  const db = obterFirestore();
-  await runTransaction(db, async transacao => {
-    validarContexto(contexto);
-    const referencia = doc(db, COLLECTIONS.produtos, id);
-    const snapshot = await transacao.get(referencia);
-    const dados = snapshot.data();
-    if (!snapshot.exists() || dados?.estabelecimentoId !== contexto.estabelecimentoId) throw new Error('Produto não encontrado nesta sessão.');
-    const produto = converterProduto(dados, id, contexto.estabelecimentoId, dados.setorId);
-    validarExclusaoPermanente(produto);
-    if (lerRegistroMovimentacoes(dados, id).quantidadeMovimentacoes !== 0 || produto.estoqueAtual !== 0 || produto.quantidadeInicial !== 0) throw new Error('Dados inconsistentes. Exclusão cancelada para preservar o histórico.');
-    const setorRef = doc(db, COLLECTIONS.setores, produto.setorId);
-    const setor = await transacao.get(setorRef);
-    const contagem = setor.data()?.quantidadeProdutos;
-    if (!setor.exists() || !inteiroEstoque(contagem) || contagem < 1) throw new Error('Dados inconsistentes. Exclusão cancelada para preservar o histórico.');
-    validarContexto(contexto);
-    transacao.delete(referencia);
-    transacao.update(setorRef, { quantidadeProdutos: contagem - 1, ultimaOperacaoProdutoId: id, atualizadoEm: serverTimestamp() });
-  });
 }
 
 async function alterarStatus(contexto: ContextoProdutos, id: string, status: Produto['status']): Promise<void> {

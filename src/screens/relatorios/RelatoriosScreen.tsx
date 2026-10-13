@@ -17,6 +17,7 @@ import { useHeaderHeight } from '@react-navigation/elements';
 import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 import { LoadingState } from '../../components/ui/ScreenState';
 import FiltroSelecao from '../../components/FiltroSelecao';
+import { VendedorLinha } from '../../components/ui/VendedorLinha';
 
 type Linha =
   | { id: string; tipo: 'movimento'; registro: MovimentoRelatorio }
@@ -40,6 +41,7 @@ const LinhaResultado = memo(function LinhaResultado({ item, abrir }: { item: Lin
       </Text>
       <Text style={styles.texto}>{data(item.registro.movimento.criadoEm)}</Text>
       <Text style={styles.texto}>{item.registro.movimento.observacao || 'Sem observação'}</Text>
+      <VendedorLinha movimento={item.registro.movimento} />
     </>}
     {produto ? <Pressable accessibilityRole="button" accessibilityLabel={'Ver detalhes de ' + produto.nome}
       style={styles.detalhes} onPress={() => abrir(produto)}><Text style={styles.link}>Ver detalhes do produto</Text></Pressable> : null}

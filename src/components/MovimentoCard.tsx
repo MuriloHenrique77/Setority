@@ -5,6 +5,7 @@ import { colors, radii, spacing, touchTarget, typography } from '../theme';
 import type { MovimentoGlobal } from '../types/visaoEstoque.types';
 import { formatarDataRelatorio, formatarQuantidadeRelatorio } from '../utils/formatarRelatorio';
 import { AppCard } from './ui/AppCard';
+import { VendedorLinha } from './ui/VendedorLinha';
 export const MovimentoCard = memo(function MovimentoCard({ registro, abrir }: { registro: MovimentoGlobal; abrir?: () => void }) {
   const entrada = registro.movimento.tipo === 'entrada';
   return <AppCard style={styles.card}><View style={styles.row}>
@@ -15,7 +16,7 @@ export const MovimentoCard = memo(function MovimentoCard({ registro, abrir }: { 
   </View><View style={styles.bottom}>
     <Text style={styles.type}>{entrada ? 'Entrada +' : 'Saída -'}{formatarQuantidadeRelatorio(registro.movimento.quantidade)}</Text>
     <Text style={styles.caption}>{formatarDataRelatorio(registro.movimento.criadoEm)}</Text>
-  </View>{abrir ? <Pressable accessibilityRole="button" accessibilityLabel={'Ver produto ' + registro.produto?.nome}
+  </View><VendedorLinha movimento={registro.movimento} />{abrir ? <Pressable accessibilityRole="button" accessibilityLabel={'Ver produto ' + registro.produto?.nome}
     onPress={abrir} style={styles.link}><Text style={styles.linkText}>Ver produto</Text></Pressable> : null}</AppCard>;
 });
 const styles = StyleSheet.create({ card: { marginBottom: spacing.md }, row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },

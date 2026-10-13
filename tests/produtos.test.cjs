@@ -14,11 +14,11 @@ test('inicial positiva grava um único batch com produto, movimento e contador',
   assert.equal(m.criadoPor,'a'); assert.equal(m.observacao,'Estoque inicial');
   assert.equal(a.docs.get('setores/s1').quantidadeProdutos,1);
 });
-test('inicial zero não cria movimento e é excluída sem ler documento inexistente',async()=>{
+test('11A inicial zero preserva produto e contador sem API de exclusão',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Zero',quantidadeInicial:0});
   assert.equal(a.docs.has('movimentacoes/inicial_p1'),false); assert.equal(a.docs.get('produtos/p1').estoqueAtual,0);
-  await a.produtos.removerProduto(contexto,'p1'); assert.equal(a.docs.has('produtos/p1'),false);
-  assert.equal(a.docs.get('setores/s1').quantidadeProdutos,0);
+  assert.equal(a.produtos.removerProduto,undefined); assert.equal(a.docs.has('produtos/p1'),true);
+  assert.equal(a.docs.get('setores/s1').quantidadeProdutos,1);
 });
 test('editar metadados preserva vínculos, inicial, projeção e histórico',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',descricao:'Texto',quantidadeInicial:10,estoqueMinimo:1});
@@ -37,14 +37,14 @@ test('RN08 consulta Produtos Firestore e bloqueia setor com produto',async()=>{
 });
 test('histórico inicial bloqueia exclusão e mantém RN08',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
-  await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/);
+  assert.equal(a.produtos.removerProduto, undefined);
   assert.equal(a.docs.has('produtos/p1'),true); assert.equal(a.docs.has('movimentacoes/inicial_p1'),true);
   await assert.rejects(a.setores.removerSetor(contexto,'s1'),/possui produtos/);
 });
 test('histórico inesperado impede cascade parcial e preserva todos os documentos',async()=>{
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
   a.docs.set('movimentacoes/externa',{estabelecimentoId:'est_a',produtoId:'p1'});
-  const antes=[...a.docs]; await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/);
+  const antes=[...a.docs]; assert.equal(a.produtos.removerProduto, undefined);
   assert.deepEqual([...a.docs],antes);
 });
 test('listener lista apenas estabelecimento e setor atuais; troca de conta invalida contexto',async()=>{
@@ -123,10 +123,10 @@ test('preserva histórico de seis movimentos e acima do registro técnico',async
   const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
   const max=a.carregar('src/utils/movimentacoes.ts').LIMITE_REGISTRO_MOVIMENTACOES;
   for(let i=1;i<max;i++) await a.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
-  await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/); assert.equal([...a.docs.keys()].filter(k=>k.startsWith('movimentacoes/')).length,max);
+  assert.equal(a.produtos.removerProduto, undefined); assert.equal([...a.docs.keys()].filter(k=>k.startsWith('movimentacoes/')).length,max);
   const b=ambiente(); await b.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
   for(let i=1;i<=max;i++) await b.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
-  const antes=[...b.docs]; await assert.rejects(b.produtos.removerProduto(contexto,'p1'),/possui histórico/);
+  const antes=[...b.docs]; assert.equal(b.produtos.removerProduto, undefined);
   assert.deepEqual([...b.docs],antes);
 });
 test('movimentos exigem quantidade positiva segura e rejeitam vínculos incorretos',async()=>{
@@ -170,7 +170,7 @@ test('7B observação sem escrita no produto; exclusões e inicial seguem mesmas
  await a.movimentos.excluirMovimentacao(contexto,'p1','s1','p2'); assert.equal(a.docs.get('produtos/p1').estoqueAtual,10);
  await a.movimentos.editarMovimentacao(contexto,'p1','s1','inicial_p1',{quantidade:8}); assert.equal(a.docs.get('produtos/p1').quantidadeInicial,10);
  await a.movimentos.excluirMovimentacao(contexto,'p1','s1','inicial_p1'); assert.equal(a.docs.get('produtos/p1').estoqueAtual,0);
- await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/); assert.equal(a.docs.get('produtos/p1').possuiHistorico,true);
+ assert.equal(a.produtos.removerProduto, undefined); assert.equal(a.docs.get('produtos/p1').possuiHistorico,true);
 });
 test('7B offline, inválidos e entrada que geraria negativo não têm efeito',async()=>{
  const a=ambiente(); await a.produtos.criarProduto(contexto,'s1',{nome:'Nome',quantidadeInicial:10});
@@ -209,5 +209,5 @@ test('7B registro parcial e marcador impedem cascade após exclusões acima de s
  await a.movimentos.registrarEntrada(contexto,'p1','s1',{quantidade:1});
  for(const id of ['p7','p8','p9','p10'])await a.movimentos.excluirMovimentacao(contexto,'p1','s1',id);
  assert.equal(a.docs.get('produtos/p1').quantidadeMovimentacoes,6);assert.equal(a.docs.get('produtos/p1').movimentacaoIds.length,6);
- const antes=[...a.docs];await assert.rejects(a.produtos.removerProduto(contexto,'p1'),/possui histórico/);assert.deepEqual([...a.docs],antes);
+ const antes=[...a.docs];assert.equal(a.produtos.removerProduto, undefined);assert.deepEqual([...a.docs],antes);
 });
