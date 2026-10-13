@@ -35,6 +35,15 @@ test('movimentos globais ordenam datas/empates sem mutação e associam nomes se
 });
 const vazio=(cache=false)=>({docs:[],metadata:{fromCache:cache,hasPendingWrites:false}});
 function iniciar(sync=false,limit=5){const e=ambiente(sync),recebidos=[],erros=[];const stop=e.load('src/services/visaoEstoque/visaoEstoqueService.ts').observarVisaoEstoque({uid:'a',estabelecimentoId:'est'},limit,d=>recebidos.push(d),e=>erros.push(e));return{...e,recebidos,erros,stop};}
+
+test('11B vinte ciclos Home/global: cleanup único e callbacks tardios ignorados',()=>{
+ for(let cycle=0;cycle<20;cycle++)for(const max of [0,50]){
+  const e=iniciar(false,max);assert.equal(e.listeners.length,max===0?2:3);
+  for(const l of e.listeners)l.receive(vazio());assert.equal(e.recebidos.length,1);
+  e.stop();e.stop();for(const l of e.listeners){l.receive(vazio(true));l.error(new Error('tardio'));assert.equal(l.closed,1);}
+  assert.equal(e.recebidos.length,1);assert.equal(e.erros.length,0);
+ }
+});
 test('Histórico global usa três consultas isoladas, limite 5 e publicação somente após três snapshots; cleanup idempotente',()=>{
  const e=iniciar();assert.equal(e.listeners.length,3);for(const l of e.listeners)assert.deepEqual(l.query.filters[0],{field:'estabelecimentoId',operator:'==',value:'est'});
  assert.deepEqual(e.listeners[2].query.filters.slice(1),[{field:'criadoEm',direction:'desc'},{limit:5}]);

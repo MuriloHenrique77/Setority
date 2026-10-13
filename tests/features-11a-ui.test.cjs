@@ -1,6 +1,6 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm'),ts=require('typescript');
 const {ambiente}=require('./helpers/produtos-ambiente.cjs');
-const theme={colors:{},spacing:{sm:8,md:12,lg:16},typography:{},touchTarget:44};
+const theme={colors:{},spacing:{sm:8,md:12,lg:16},typography:{},touchTarget:ambiente().carregar('src/theme/spacing.ts').touchTarget};
 const jsx={jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})};
 const native={View:'View',Text:'Text',Pressable:'Pressable',StyleSheet:{create:x=>x}};
 function load(file,imports){const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;vm.runInThisContext('(function(require,module,exports){'+code+'\n})')(n=>n==='react/jsx-runtime'?jsx:n in imports?imports[n]:(()=>{throw Error(n)})(),m,m.exports);return m.exports;}
@@ -19,20 +19,20 @@ test('11A Home conserva indicadores e ações rápidas, sem recentes nem lacuna 
  for(const label of ['Novo produto','Entrada','Saída'])tree.find(x=>x.props.label===label).props.onPress();
  assert.deepEqual(calls.map(x=>x[1].params.acao),['produto','entrada','saida']);
 });
-for(const status of ['ativo','inativo'])test('11A produto '+status+' só oferece ciclo sem excluir',()=>{
+for(const [status,possuiHistorico] of [['ativo',false],['ativo',true],['inativo',false],['inativo',true],[undefined,undefined]])test('11A produto '+(status??'legado')+' histórico='+possuiHistorico+' só oferece ciclo sem excluir',()=>{
  const component=load('src/components/ProdutoLifecycleActions.tsx',{
   react:{useEffect:()=>{},useRef:x=>({current:x}),useState:x=>[x,()=>{}]},'react-native':native,
   '../utils/produtos':{mensagemErroProdutos:()=>''},'../utils/cicloProduto':{mensagemInativacao:()=>''},
   '../services/produtos/produtosService':{},'../theme':theme,'./ui/AppButton':{AppButton:'button'},'./ui/FeedbackProvider':{useFeedback:()=>()=>{}},'./ConfirmModal':{default:'modal'},
  }).ProdutoLifecycleActions;
- const tree=nodes(component({produto:{id:'p',status},contexto:{uid:'a',estabelecimentoId:'est'}}));
- assert.deepEqual(tree.filter(x=>x.type==='button').map(x=>x.props.label),[status==='ativo'?'Inativar produto':'Reativar produto']);
+ const tree=nodes(component({produto:{id:'p',status,possuiHistorico},contexto:{uid:'a',estabelecimentoId:'est'}}));
+ assert.deepEqual(tree.filter(x=>x.type==='button').map(x=>x.props.label),[status==='inativo'?'Reativar produto':'Inativar produto']);
  assert.equal(JSON.stringify(tree).includes('Excluir'),false);
 });
-test('11A checkbox tem label clicável, checked/disabled e alvo de 44dp',()=>{
+test('11A checkbox tem label clicável, checked/disabled e alvo real de 48dp',()=>{
  const Checkbox=load('src/components/ui/AppCheckbox.tsx',{'react-native':native,'@expo/vector-icons':{Ionicons:'icon'},'../../theme':theme}).AppCheckbox;
  const changes=[],x=Checkbox({label:'Adicionar vendedor',checked:false,onChange:v=>changes.push(v)});
- assert.equal(x.props.accessibilityRole,'checkbox');assert.equal(x.props.accessibilityLabel,'Adicionar vendedor');assert.equal(x.props.accessibilityState.checked,false);assert.equal(x.props.style[0].minHeight,44);x.props.onPress();assert.deepEqual(changes,[true]);
+ assert.equal(x.props.accessibilityRole,'checkbox');assert.equal(x.props.accessibilityLabel,'Adicionar vendedor');assert.equal(x.props.accessibilityState.checked,false);assert.equal(x.props.style[0].minHeight,48);x.props.onPress();assert.deepEqual(changes,[true]);
  const disabled=Checkbox({label:'Adicionar vendedor',checked:true,disabled:true,onChange:()=>{}});assert.equal(disabled.props.disabled,true);assert.equal(disabled.props.accessibilityState.checked,true);
 });
 test('11A linha de vendedor omite ausência e entradas, preserva nome completo em saída',()=>{

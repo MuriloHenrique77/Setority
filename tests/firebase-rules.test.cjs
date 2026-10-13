@@ -71,7 +71,7 @@ test('Etapa 9: volume de 400 movimentos no Emulator, consultas completas e agreg
  const path=(c,id)=>`${database}/documents/${c}/${id}`,integer=n=>({integerValue:String(n)}),stamp={timestampValue:'2026-10-05T12:00:00Z'};
  const writes=[{update:{name:path('setores',sector),fields:{id:string(sector),estabelecimentoId:string(est),nome:string('Volume'),criadoEm:stamp}}}];
  for(let p=0;p<20;p++)writes.push({update:{name:path('produtos',prefix+'_'+p),fields:{id:string(prefix+'_'+p),estabelecimentoId:string(est),setorId:string(sector),nome:string('Produto '+p),quantidadeInicial:integer(0),estoqueAtual:integer(10),criadoEm:stamp}}});
- for(let i=0;i<400;i++){const entrada=i%2===0;writes.push({update:{name:path('movimentacoes',prefix+'_'+i),fields:{id:string(prefix+'_'+i),estabelecimentoId:string(est),setorId:string(sector),produtoId:string(prefix+'_'+Math.floor(i/20)),tipo:string(entrada?'entrada':'saida'),quantidade:integer(entrada?2:1),criadoPor:string(user.uid),criadoEm:stamp}}});}
+ for(let i=0;i<400;i++){const entrada=i%2===0;writes.push({update:{name:path('movimentacoes',prefix+'_'+i),fields:{id:string(prefix+'_'+i),estabelecimentoId:string(est),setorId:string(sector),produtoId:string(prefix+'_'+Math.floor(i/20)),tipo:string(entrada?'entrada':'saida'),quantidade:integer(entrada?2:1),criadoPor:string(user.uid),criadoEm:stamp,...(i%4===3?{vendedorNome:string('Volume Carlos')}:{})}}});}
  assert.equal((await request('POST',':commit','owner',{writes})).status,200);
  const start=performance.now(),dados={emCache:false};
  for(const [col,field] of [['produtos','produtos'],['setores','setores'],['movimentacoes','movimentos']]){
@@ -83,7 +83,7 @@ test('Etapa 9: volume de 400 movimentos no Emulator, consultas completas e agreg
  const fs=require('node:fs'),vm=require('node:vm'),pathModule=require('node:path'),ts=require('typescript'),cache=new Map();
  function load(file){file=pathModule.resolve(file);if(cache.has(file))return cache.get(file);const m={exports:{}},code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText;vm.runInThisContext('(function(require,module,exports){'+code+'\n})')(n=>load(pathModule.resolve(pathModule.dirname(file),n+'.ts')),m,m.exports);cache.set(file,m.exports);return m.exports;}
  const aggregateStart=performance.now();const result=load('src/utils/relatorios.ts').agregarRelatorio(est,dados,{inicio:new Date('2026-10-01T00:00:00Z'),fimExclusivo:new Date('2026-11-01T00:00:00Z')});
- assert.equal(result.movimentos.length,400);assert.deepEqual(result.resumo,{totalEntradas:400,totalSaidas:200,saldoPeriodo:200,quantidadeMovimentacoes:400,produtosMovimentados:20});assert.equal(result.maioresEntradas.length,20);assert.equal(result.maioresSaidas.length,20);
+ assert.equal(result.movimentos.length,400);assert.equal(dados.movimentos.filter(m=>m.vendedorNome).length,100);assert.deepEqual(result.resumo,{totalEntradas:400,totalSaidas:200,saldoPeriodo:200,quantidadeMovimentacoes:400,produtosMovimentados:20});assert.equal(result.maioresEntradas.length,20);assert.equal(result.maioresSaidas.length,20);
  t.diagnostic('Volume completo: 400 movimentos/20 produtos; leitura '+Math.round(aggregateStart-start)+'ms; transpile+agregação '+Math.round(performance.now()-aggregateStart)+'ms. Tempo local indicativo, sem SLA.');
 });
 
@@ -1105,4 +1105,40 @@ test('11A vendedor: schema, deltas, remoção, imutabilidade e isolamento',async
  const other=await fixture(b,eb);ok(await commit(other.create(string('Vendedor B')),b.token));
  for(const [label,token,target]of [['B não lê/edita A',b.token,f],['A não lê/edita B',a.token,other],['anônimo',null,f]])await t.test(label,async()=>{denied(await request('GET','/movimentacoes/'+target.m,token));denied(await commit([target.update('movimentacoes',target.m,{vendedorNome:string('Ataque')})],token));});
  for(const [label,changes]of [['ativo sem histórico',{possuiHistorico:{booleanValue:false},quantidadeInicial:num(0),estoqueAtual:num(0),quantidadeMovimentacoes:num(0),movimentacaoIds:{arrayValue:{values:[]}}}],['com histórico',{}],['inativo',{status:string('inativo'),inativadoEm:stamp,inativadoPor:string(a.uid)}]])await t.test('delete produto negado '+label,async()=>{const p=await fixture();if(Object.keys(changes).length)ok(await commit([p.update('produtos',p.p,changes)],'owner'));denied(await request('DELETE','/produtos/'+p.p,a.token));denied(await commit([{delete:path('produtos',p.p)},p.update('setores',p.s,{quantidadeProdutos:num(0),ultimaOperacaoProdutoId:string(p.p)})]));denied(await request('DELETE','/setores/'+p.s,a.token));});
+});
+
+test('11B concorrência com vendedor e precondições reais no Firestore Emulator', async t => {
+ const user=await signup(),est=randomUUID(),sector=randomUUID();
+ assert.equal((await request('POST',':commit',user.token,{writes:onboarding(user,est)})).status,200);
+ const num=n=>({integerValue:String(n)}),path=(c,id)=>`${database}/documents/${c}/${id}`,stamp={timestampValue:'2026-10-13T12:00:00Z'};
+ const commit=(writes,token=user.token)=>request('POST',':commit',token,{writes});
+ async function seed(stock=10,withExit=false){
+  const p=randomUUID(),initial='inicial_'+p,m=randomUUID(),ids=withExit?[initial,m]:[initial];
+  const writes=[{update:{name:path('setores',sector),fields:{id:string(sector),nome:string('11B'),estabelecimentoId:string(est),criadoEm:stamp,quantidadeProdutos:num(1)}}},
+   {update:{name:path('produtos',p),fields:{id:string(p),nome:string('11B'),estabelecimentoId:string(est),setorId:string(sector),quantidadeInicial:num(withExit?20:stock),estoqueAtual:num(stock),status:string('ativo'),inativadoEm:{nullValue:null},inativadoPor:{nullValue:null},possuiHistorico:{booleanValue:true},criadoEm:stamp,quantidadeMovimentacoes:num(ids.length),movimentacaoIds:{arrayValue:{values:ids.map(string)}},ultimaMovimentacaoId:string(ids.at(-1))}}},
+   {update:{name:path('movimentacoes',initial),fields:{id:string(initial),estabelecimentoId:string(est),produtoId:string(p),setorId:string(sector),tipo:string('entrada'),quantidade:num(withExit?20:stock),criadoPor:string(user.uid),criadoEm:stamp,observacao:string('Estoque inicial')}}}];
+  if(withExit)writes.push({update:{name:path('movimentacoes',m),fields:{id:string(m),estabelecimentoId:string(est),produtoId:string(p),setorId:string(sector),tipo:string('saida'),quantidade:num(5),vendedorNome:string('A'),criadoPor:string(user.uid),criadoEm:stamp}}});
+  assert.equal((await commit(writes,'owner')).status,200);return{p,m};
+ }
+ const read=async(c,id)=>{const r=await request('GET','/'+c+'/'+id,user.token);assert.equal(r.status,200);return r.data;};
+ const update=(col,id,data,time)=>({update:{name:path(col,id),fields:data},updateMask:{fieldPaths:Object.keys(data)},updateTransforms:[{fieldPath:'atualizadoEm',setToServerValue:'REQUEST_TIME'}],...(time?{currentDocument:{updateTime:time}}:{})});
+ async function exit(p,qty,vendor){
+  const id=randomUUID();
+  for(let retry=0;retry<5;retry++){
+   const doc=await read('produtos',p),d=doc.fields,stock=Number(d.estoqueAtual.integerValue);if(stock<qty)return{status:409,insufficient:true};
+   const ids=d.movimentacaoIds.arrayValue.values||[],n=Number(d.quantidadeMovimentacoes.integerValue);
+   const writes=[{update:{name:path('movimentacoes',id),fields:{id:string(id),estabelecimentoId:string(est),produtoId:string(p),setorId:string(sector),tipo:string('saida'),quantidade:num(qty),vendedorNome:string(vendor),criadoPor:string(user.uid)}},updateTransforms:[{fieldPath:'criadoEm',setToServerValue:'REQUEST_TIME'}],currentDocument:{exists:false}},update('produtos',p,{estoqueAtual:num(stock-qty),quantidadeMovimentacoes:num(n+1),movimentacaoIds:{arrayValue:{values:ids.length<6?[...ids,string(id)]:ids}},ultimaMovimentacaoId:string(id),possuiHistorico:{booleanValue:true}},doc.updateTime)];
+   const r=await commit(writes);if(r.status===200)return r;if(r.status===403 && (await read('produtos',p)).updateTime!==doc.updateTime)continue;if(r.status!==409)throw Error(JSON.stringify(r));
+  }throw Error('Retry excedido');
+ }
+ async function editQuantity(f,qty,vendor){
+  for(let retry=0;retry<5;retry++){
+   const[p,m]=await Promise.all([read('produtos',f.p),read('movimentacoes',f.m)]),stock=Number(p.fields.estoqueAtual.integerValue),old=Number(m.fields.quantidade.integerValue);
+   const r=await commit([update('movimentacoes',f.m,{quantidade:num(qty),vendedorNome:string(vendor)},m.updateTime),update('produtos',f.p,{estoqueAtual:num(stock+old-qty),ultimaMovimentacaoId:string(f.m)},p.updateTime)]);
+   if(r.status===200)return r;if(r.status===403 && (await read('produtos',f.p)).updateTime!==p.updateTime)continue;if(r.status!==409)throw Error(JSON.stringify(r));
+  }throw Error('Retry excedido');
+ }
+ await t.test('duas saídas8/7 com vendedor em saldo10: somente uma confirma',async()=>{const f=await seed(10);const results=await Promise.all([exit(f.p,8,'A'),exit(f.p,7,'B')]);assert.equal(results.filter(r=>r.status===200).length,1);const p=await read('produtos',f.p);assert.ok([2,3].includes(Number(p.fields.estoqueAtual.integerValue)));});
+ await t.test('editar só vendedor em paralelo com saída conserva delta',async()=>{const f=await seed(15,true);const results=await Promise.all([commit([update('movimentacoes',f.m,{vendedorNome:string('B')})]),exit(f.p,3,'Outro')]);assert.ok(results.every(r=>r.status===200));assert.equal((await read('produtos',f.p)).fields.estoqueAtual.integerValue,'12');assert.equal((await read('movimentacoes',f.m)).fields.vendedorNome.stringValue,'B');});
+ await t.test('editar quantidade5→7 e vendedor enquanto sai3: saldo10',async()=>{const f=await seed(15,true);const results=await Promise.all([editQuantity(f,7,'C'),exit(f.p,3,'Outro')]);assert.ok(results.every(r=>r.status===200));assert.equal((await read('produtos',f.p)).fields.estoqueAtual.integerValue,'10');assert.equal((await read('movimentacoes',f.m)).fields.vendedorNome.stringValue,'C');});
 });
