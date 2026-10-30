@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased] - 1.1.1
+
+### Fixed
+- A raiz persistente libera a splash nativa no primeiro layout, independentemente de imagem, fontes e sessão. Corrige a retenção indefinida observada no Galaxy A54 quando a Boot é desmontada antes do carregamento da imagem.
+- Boot permanece apenas visual; testes de lifecycle cobrem a corrida de inicialização e falhas de carregamento/ocultação.
+
+Preparação local: versão 1.1.1, Android versionCode 3. Sem release/tag até aprovação.
+
 ## [1.1.0] - 2026-10-13
 
 ### Added

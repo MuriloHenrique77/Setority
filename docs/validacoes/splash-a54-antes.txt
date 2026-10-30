@@ -1,0 +1,29 @@
+10-15 10:07:05.763 31610 31654 I ReactNativeJS: [BOOT_DIAG] App modulo carregado
+10-15 10:07:05.763 31610 31654 I ReactNativeJS: [BOOT_DIAG] antes preventAutoHideAsync
+10-15 10:07:05.765 31610 31654 I ReactNativeJS: Running "main"
+10-15 10:07:05.766 31610 31654 I ReactNativeJS: [BOOT_DIAG] depois preventAutoHideAsync
+10-15 10:07:05.766 31610 31654 I ReactNativeJS: [BOOT_DIAG] App render
+10-15 10:07:05.767 31610 31654 I ReactNativeJS: [BOOT_DIAG] SafeAreaProvider insetsReady=false
+10-15 10:07:05.769 31610 31654 I ReactNativeJS: [BOOT_DIAG] root montado
+10-15 10:07:05.769 31610 31654 I ReactNativeJS: [BOOT_DIAG] fontes iniciadas
+10-15 10:07:05.769 31610 31654 I ReactNativeJS: [BOOT_DIAG] fontes carregadas=true
+10-15 10:07:05.769 31610 31654 I ReactNativeJS: [BOOT_DIAG] erro fontes=false
+10-15 10:07:05.769 31610 31654 I ReactNativeJS: [BOOT_DIAG] appIsReady=true
+10-15 10:07:05.786 31610 31654 I ReactNativeJS: [BOOT_DIAG] onLayout root
+10-15 10:07:05.799 31610 31654 I ReactNativeJS: [BOOT_DIAG] SafeAreaProvider insetsReady=true
+10-15 10:07:05.801 31610 31654 I ReactNativeJS: [BOOT_DIAG] RootNavigator render=loading
+10-15 10:07:05.808 31610 31654 I ReactNativeJS: [BOOT_DIAG] BootScreen render=true
+10-15 10:07:05.827 31610 31654 I ReactNativeJS: [BOOT_DIAG] Boot imagem pronta=false
+10-15 10:07:05.827 31610 31654 I ReactNativeJS: [BOOT_DIAG] Boot layout pronto=false
+10-15 10:07:05.828 31610 31654 I ReactNativeJS: [BOOT_DIAG] SessionProvider montado
+10-15 10:07:05.828 31610 31654 I ReactNativeJS: [BOOT_DIAG] sessao inicial=loading
+10-15 10:07:05.828 31610 31654 I ReactNativeJS: [BOOT_DIAG] sessao transicao=loading
+10-15 10:07:05.859 31610 31654 I ReactNativeJS: [BOOT_DIAG] Firebase Auth inicializado
+10-15 10:07:05.860 31610 31654 I ReactNativeJS: [BOOT_DIAG] onLayout Boot
+10-15 10:07:05.860 31610 31654 I ReactNativeJS: [BOOT_DIAG] BootScreen render=true
+10-15 10:07:05.861 31610 31654 I ReactNativeJS: [BOOT_DIAG] Boot imagem pronta=false
+10-15 10:07:05.861 31610 31654 I ReactNativeJS: [BOOT_DIAG] Boot layout pronto=true
+10-15 10:07:05.886 31610 31654 I ReactNativeJS: [BOOT_DIAG] usuario resolvido presente=false
+10-15 10:07:05.886 31610 31654 I ReactNativeJS: [BOOT_DIAG] perfil nao necessario
+10-15 10:07:05.886 31610 31654 I ReactNativeJS: [BOOT_DIAG] RootNavigator render=unauthenticated
+10-15 10:07:05.910 31610 31654 I ReactNativeJS: [BOOT_DIAG] sessao transicao=unauthenticated

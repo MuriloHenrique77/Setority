@@ -9,26 +9,10 @@ test('release versão tem uma fonte: app.json, sem texto hardcoded na UI',()=>{
 });
 test('Boot preserva asset, proporção, versão com safe area e erro sem delay',()=>{
  const jsx={jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})};
- const Boot=load('src/components/BootScreen.tsx',{'react/jsx-runtime':jsx,'react':{useState:v=>[v,()=>{}],useEffect:()=>{}},'expo-splash-screen':{hide:()=>{}},'react-native':{ActivityIndicator:'spinner',Image:'image',Text:'text',View:'view',useWindowDimensions:()=>({width:360,height:740}),StyleSheet:{create:x=>x,absoluteFillObject:{position:'absolute'}}},'react-native-safe-area-context':{useSafeAreaInsets:()=>({left:5,right:0,bottom:24})},'../theme':{colors:{},fonts:{},spacing:{xxxl:32,xxl:24,lg:16,md:12},typography:{caption:{},body:{}}},'../utils/versaoApp':{obterVersaoApp:()=> '9.2.3'},'../../assets/setority-adaptive-foreground.png':'official'}).default;
+ const Boot=load('src/components/BootScreen.tsx',{'react/jsx-runtime':jsx,'react-native':{ActivityIndicator:'spinner',Image:'image',Text:'text',View:'view',useWindowDimensions:()=>({width:360,height:740}),StyleSheet:{create:x=>x}},'react-native-safe-area-context':{useSafeAreaInsets:()=>({left:5,right:0,bottom:24})},'../theme':{colors:{},fonts:{},spacing:{xxxl:32,xxl:24,lg:16,md:12},typography:{caption:{},body:{}}},'../utils/versaoApp':{obterVersaoApp:()=> '9.2.3'},'../../assets/setority-adaptive-foreground.png':'official'}).default;
  const tree=Boot({});const image=tree.props.children[0],status=tree.props.children[2],version=tree.props.children[3];
  assert.equal(image.props.source,'official');assert.equal(image.props.resizeMode,'contain');assert.equal(status.props.children.type,'spinner');
  assert.deepEqual(version.props.children,['v','9.2.3']);assert.equal(version.props.style[1].left,29);assert.equal(version.props.style[1].bottom,40);
  assert.equal(Boot({erro:true}).props.children[2].props.children.type,'text');
  assert.equal(/setTimeout|setInterval/.test(fs.readFileSync('src/components/BootScreen.tsx','utf8')),false);
-});
-
-test('splash só é liberada com conteúdo, imagem e layout prontos',()=>{
- let values=[false,false],index=0,hidden=0;
- const jsx={jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})};
- const Boot=load('src/components/BootScreen.tsx',{
-  'react/jsx-runtime':jsx,'react':{useState:()=>[values[index++],()=>{}],useEffect:fn=>fn()},
-  'expo-splash-screen':{hide:()=>hidden++},
-  'react-native':{ActivityIndicator:'spinner',Image:'image',Text:'text',View:'view',useWindowDimensions:()=>({width:360,height:740}),StyleSheet:{create:x=>x}},
-  'react-native-safe-area-context':{useSafeAreaInsets:()=>({left:0,right:0,bottom:24})},
-  '../theme':{colors:{},fonts:{},spacing:{xxxl:32,xxl:24,lg:16,md:12},typography:{caption:{},body:{}}},
-  '../utils/versaoApp':{obterVersaoApp:()=> '9.2.3'},'../../assets/setority-adaptive-foreground.png':'official',
- }).default;
- for(const state of [[false,false],[true,false],[false,true]]){values=state;index=0;Boot({});assert.equal(hidden,0);}
- values=[true,true];index=0;Boot({pronto:false});assert.equal(hidden,0);
- index=0;Boot({pronto:true});assert.equal(hidden,1);
 });

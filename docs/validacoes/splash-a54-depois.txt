@@ -1,0 +1,26 @@
+10-15 10:11:51.757   956  1045 I ReactNativeJS: [BOOT_DIAG] App modulo carregado
+10-15 10:11:51.757   956  1045 I ReactNativeJS: [BOOT_DIAG] antes preventAutoHideAsync
+10-15 10:11:51.759   956  1045 I ReactNativeJS: Running "main"
+10-15 10:11:51.760   956  1045 I ReactNativeJS: [BOOT_DIAG] depois preventAutoHideAsync
+10-15 10:11:51.760   956  1045 I ReactNativeJS: [BOOT_DIAG] App render
+10-15 10:11:51.761   956  1045 I ReactNativeJS: [BOOT_DIAG] SafeAreaProvider insetsReady=false
+10-15 10:11:51.764   956  1045 I ReactNativeJS: [BOOT_DIAG] root montado
+10-15 10:11:51.764   956  1045 I ReactNativeJS: [BOOT_DIAG] fontes iniciadas
+10-15 10:11:51.764   956  1045 I ReactNativeJS: [BOOT_DIAG] fontes carregadas=true
+10-15 10:11:51.764   956  1045 I ReactNativeJS: [BOOT_DIAG] erro fontes=false
+10-15 10:11:51.764   956  1045 I ReactNativeJS: [BOOT_DIAG] appIsReady=true
+10-15 10:11:51.777   956  1045 I ReactNativeJS: [BOOT_DIAG] onLayout root
+10-15 10:11:51.777   956  1045 I ReactNativeJS: [BOOT_DIAG] antes hideAsync
+10-15 10:11:51.777   956  1045 I ReactNativeJS: [BOOT_DIAG] depois hideAsync
+10-15 10:11:51.794   956  1045 I ReactNativeJS: [BOOT_DIAG] SafeAreaProvider insetsReady=true
+10-15 10:11:51.795   956  1045 I ReactNativeJS: [BOOT_DIAG] RootNavigator render=loading
+10-15 10:11:51.803   956  1045 I ReactNativeJS: [BOOT_DIAG] BootScreen render
+10-15 10:11:51.826   956  1045 I ReactNativeJS: [BOOT_DIAG] SessionProvider montado
+10-15 10:11:51.826   956  1045 I ReactNativeJS: [BOOT_DIAG] sessao inicial=loading
+10-15 10:11:51.826   956  1045 I ReactNativeJS: [BOOT_DIAG] sessao transicao=loading
+10-15 10:11:51.838   956  1045 I ReactNativeJS: [BOOT_DIAG] Firebase Auth inicializado
+10-15 10:11:51.862   956  1045 I ReactNativeJS: [BOOT_DIAG] onLayout Boot
+10-15 10:11:51.949   956  1045 I ReactNativeJS: [BOOT_DIAG] usuario resolvido presente=false
+10-15 10:11:51.949   956  1045 I ReactNativeJS: [BOOT_DIAG] perfil nao necessario
+10-15 10:11:51.951   956  1045 I ReactNativeJS: [BOOT_DIAG] RootNavigator render=unauthenticated
+10-15 10:11:52.048   956  1045 I ReactNativeJS: [BOOT_DIAG] sessao transicao=unauthenticated

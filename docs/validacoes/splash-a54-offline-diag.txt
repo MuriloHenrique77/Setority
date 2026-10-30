@@ -1,0 +1,34 @@
+wifi_offline=0
+data_offline=0
+Active default network: none
+Starting: Intent { cmp=com.murilo.estoqueporsetores/.MainActivity }
+10-15 10:13:11.257  2717  2818 I ReactNativeJS: [BOOT_DIAG] App modulo carregado
+10-15 10:13:11.257  2717  2818 I ReactNativeJS: [BOOT_DIAG] antes preventAutoHideAsync
+10-15 10:13:11.258  2717  2818 I ReactNativeJS: Running "main"
+10-15 10:13:11.259  2717  2818 I ReactNativeJS: [BOOT_DIAG] depois preventAutoHideAsync
+10-15 10:13:11.259  2717  2818 I ReactNativeJS: [BOOT_DIAG] App render
+10-15 10:13:11.260  2717  2818 I ReactNativeJS: [BOOT_DIAG] SafeAreaProvider insetsReady=false
+10-15 10:13:11.261  2717  2818 I ReactNativeJS: [BOOT_DIAG] root montado
+10-15 10:13:11.261  2717  2818 I ReactNativeJS: [BOOT_DIAG] fontes iniciadas
+10-15 10:13:11.261  2717  2818 I ReactNativeJS: [BOOT_DIAG] fontes carregadas=true
+10-15 10:13:11.261  2717  2818 I ReactNativeJS: [BOOT_DIAG] erro fontes=false
+10-15 10:13:11.261  2717  2818 I ReactNativeJS: [BOOT_DIAG] appIsReady=true
+10-15 10:13:11.274  2717  2818 I ReactNativeJS: [BOOT_DIAG] onLayout root
+10-15 10:13:11.274  2717  2818 I ReactNativeJS: [BOOT_DIAG] antes hideAsync
+10-15 10:13:11.274  2717  2818 I ReactNativeJS: [BOOT_DIAG] depois hideAsync
+10-15 10:13:11.289  2717  2818 I ReactNativeJS: [BOOT_DIAG] SafeAreaProvider insetsReady=true
+10-15 10:13:11.291  2717  2818 I ReactNativeJS: [BOOT_DIAG] RootNavigator render=loading
+10-15 10:13:11.299  2717  2818 I ReactNativeJS: [BOOT_DIAG] BootScreen render
+10-15 10:13:11.321  2717  2818 I ReactNativeJS: [BOOT_DIAG] SessionProvider montado
+10-15 10:13:11.321  2717  2818 I ReactNativeJS: [BOOT_DIAG] sessao inicial=loading
+10-15 10:13:11.321  2717  2818 I ReactNativeJS: [BOOT_DIAG] sessao transicao=loading
+10-15 10:13:11.330  2717  2818 I ReactNativeJS: [BOOT_DIAG] Firebase Auth inicializado
+10-15 10:13:11.335  2717  2818 I ReactNativeJS: [BOOT_DIAG] onLayout Boot
+10-15 10:13:11.348  2717  2818 I ReactNativeJS: [BOOT_DIAG] usuario resolvido presente=false
+10-15 10:13:11.349  2717  2818 I ReactNativeJS: [BOOT_DIAG] perfil nao necessario
+10-15 10:13:11.349  2717  2818 I ReactNativeJS: [BOOT_DIAG] RootNavigator render=unauthenticated
+10-15 10:13:11.381  2717  2818 I ReactNativeJS: [BOOT_DIAG] sessao transicao=unauthenticated
+  mCurrentFocus=Window{c8aa640 u0 com.murilo.estoqueporsetores/com.murilo.estoqueporsetores.MainActivity}
+    mTopFullscreenOpaqueWindowState=Window{c8aa640 u0 com.murilo.estoqueporsetores/com.murilo.estoqueporsetores.MainActivity}
+UI hierchary dumped to: /data/local/tmp/setority-boot-offline.xml
+NETWORK_RESTORED

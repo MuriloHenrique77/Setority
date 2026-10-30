@@ -12,17 +12,29 @@ import { navigationTheme } from './src/theme/navigation';
 import { FeedbackProvider } from './src/components/ui/FeedbackProvider';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { useCallback, useRef } from 'react';
 
-// A splash nativa permanece até o Boot ter imagem e layout prontos.
-void SplashScreen.preventAutoHideAsync().catch(() => {});
+// A raiz persistente libera a splash, sem aguardar fontes, imagem ou sessão.
+void SplashScreen.preventAutoHideAsync().catch(() => {
+  console.warn('Não foi possível preparar a abertura nativa.');
+});
 
 export default function App() {
   const [fontesCarregadas, erroFonte] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
-  // Nenhuma tela com tipografia de fallback pisca antes das fontes locais.
+  const splashLiberada = useRef(false);
+  const ocultarSplashNativa = useCallback(() => {
+    if (splashLiberada.current) return;
+    splashLiberada.current = true;
+    void SplashScreen.hideAsync().catch(() => {
+      splashLiberada.current = false;
+      console.warn('Não foi possível concluir a abertura nativa.');
+    });
+  }, []);
+  // Enquanto recursos locais ou sessão carregam, o React já pode mostrar o Boot.
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider onLayout={ocultarSplashNativa}>
       <StatusBar style="dark" />
-      {!fontesCarregadas ? <BootScreen erro={Boolean(erroFonte)} pronto={Boolean(erroFonte)} /> : (
+      {!fontesCarregadas ? <BootScreen erro={Boolean(erroFonte)} /> : (
       <FeedbackProvider>
       <SessionProvider>
         <NavigationContainer theme={navigationTheme}>

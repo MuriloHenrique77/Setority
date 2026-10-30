@@ -1,0 +1,9 @@
+wifi_offline=0
+data_offline=0
+Active default network: none
+Starting: Intent { cmp=com.murilo.estoqueporsetores/.MainActivity }
+10-15 10:27:30.055  8094  8124 I ReactNativeJS: Running "main"
+  mCurrentFocus=Window{243af04 u0 com.murilo.estoqueporsetores/com.murilo.estoqueporsetores.MainActivity}
+    mTopFullscreenOpaqueWindowState=Window{243af04 u0 com.murilo.estoqueporsetores/com.murilo.estoqueporsetores.MainActivity}
+UI hierchary dumped to: /data/local/tmp/setority-boot-offline.xml
+NETWORK_RESTORED

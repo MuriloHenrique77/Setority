@@ -1,25 +1,17 @@
 import { ActivityIndicator, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { useEffect, useState } from 'react';
-import * as SplashScreen from 'expo-splash-screen';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, typography } from '../theme';
 import { obterVersaoApp } from '../utils/versaoApp';
 
-export default function BootScreen({ erro, pronto = true }: { erro?: boolean; pronto?: boolean }) {
-  const [imagemPronta, setImagemPronta] = useState(false);
-  const [layoutPronto, setLayoutPronto] = useState(false);
-  useEffect(() => {
-    if (pronto && imagemPronta && layoutPronto) SplashScreen.hide();
-  }, [pronto, imagemPronta, layoutPronto]);
+export default function BootScreen({ erro }: { erro?: boolean }) {
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   // As margens transparentes oficiais mantêm o símbolo na escala da splash Android.
   const tamanho = Math.min(216, width - insets.left - insets.right - spacing.xxl * 2);
   const topo = (height - tamanho) / 2;
   const versao = obterVersaoApp();
-  return <View style={styles.area} accessibilityLiveRegion="polite" onLayout={() => setLayoutPronto(true)}>
+  return <View style={styles.area} accessibilityLiveRegion="polite">
     <Image source={require('../../assets/setority-adaptive-foreground.png')} resizeMode="contain"
-      onLoadEnd={() => setImagemPronta(true)}
       accessibilityLabel="Setority" style={[styles.imagem, { width: tamanho, height: tamanho, top: topo, left: (width - tamanho) / 2 }]} />
     <View style={[styles.marca, { top: topo + tamanho - spacing.md }]}>
       <Text style={styles.nome}>Setority</Text>
