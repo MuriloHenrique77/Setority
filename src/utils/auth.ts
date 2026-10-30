@@ -12,6 +12,19 @@ export function validarEmailRecuperacao(email: string): string | null {
 }
 
 export const mensagemRecuperacaoEnviada = 'Se existir uma conta com este e-mail, enviaremos instruções para redefinir sua senha.';
+export const mensagemRecuperacaoContaEnviada = 'Enviamos as instruções de redefinição de senha para seu e-mail.';
+
+export function mensagemErroRecuperacaoConta(erro: unknown): string {
+  const codigo = typeof erro === 'object' && erro !== null && 'code' in erro ? String(erro.code) : '';
+  if (codigo === 'auth/reset-email-unavailable') return 'Não foi possível identificar o e-mail desta conta.';
+  if (codigo === 'auth/reset-session-changed') return 'Sua sessão mudou. Entre novamente para redefinir sua senha.';
+  if (codigo === 'auth/network-request-failed') return 'Não foi possível enviar o e-mail. Verifique sua conexão e tente novamente.';
+  if (codigo === 'auth/invalid-email' || codigo === 'auth/too-many-requests' || codigo === 'auth/request-in-progress' ||
+      codigo === 'app/web-unavailable' || codigo === 'auth/internal-error' || codigo === 'auth/operation-not-allowed' || codigo === 'auth/app-not-authorized') {
+    return mensagemErroRecuperacao(erro);
+  }
+  return 'Não foi possível enviar as instruções de redefinição. Tente novamente.';
+}
 
 export function mensagemErroRecuperacao(erro: unknown): string {
   const codigo = typeof erro === 'object' && erro !== null && 'code' in erro ? String(erro.code) : '';

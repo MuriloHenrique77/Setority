@@ -14,5 +14,6 @@ export async function entrar(_email: string, _senha: string): Promise<void> { th
 export async function cadastrar(_email: string, _senha: string): Promise<void> { throw indisponivel(); }
 export async function sair(): Promise<void> { throw indisponivel(); }
 export async function recuperarSenha(_email: string): Promise<void> { throw indisponivel(); }
+export async function recuperarSenhaDaConta(_uidEsperado: string): Promise<void> { throw indisponivel(); }
 export async function carregarPerfil(_conta: ContaAutenticada): Promise<{ perfil: Usuario; estabelecimento: Estabelecimento } | null> { throw indisponivel(); }
 export async function criarEstabelecimento(_nome: string): Promise<void> { throw indisponivel(); }

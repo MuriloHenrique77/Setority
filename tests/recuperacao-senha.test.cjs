@@ -20,7 +20,7 @@ test('recuperação: erros traduzidos sem código técnico ou detalhes da conta'
  for(const error of [new Error('FirebaseError técnico'),null,{code:'auth/user-disabled'},{code:'auth/desconhecido'}])assert.equal(utils.mensagemErroRecuperacao(error),'Não foi possível enviar as instruções. Tente novamente mais tarde.');
  assert.equal(utils.mensagemRecuperacaoEnviada,'Se existir uma conta com este e-mail, enviaremos instruções para redefinir sua senha.');
 });
-function service(failure){const calls=[],auth={};const s=load('src/services/firebase/session.ts',{
+function service(failure){const calls=[],auth={currentUser:{uid:'atual',email:'  Atual@exemplo.test  '}};const s=load('src/services/firebase/session.ts',{
  '@react-native-firebase/auth':{setLanguageCode:async(a,lang)=>calls.push(['idioma',a,lang]),sendPasswordResetEmail:async(a,email)=>{calls.push(['enviar',a,email]);if(failure)throw failure;}},
  '@react-native-firebase/firestore':{},'./auth':{obterAuth:()=>auth},'./firestore':{},'./collections':{},'./converters/onboarding':{},'../../utils/auth':utils,
  });return {...s,calls,auth};}
@@ -75,4 +75,45 @@ test('erros comuns reutilizam tradução de Login/Cadastro; não expõe conta de
 test('trim preserva caixa do email e falha do SDK libera bloqueio para nova tentativa',async()=>{
  const s=service();await s.recuperarSenha('  Pessoa@Exemplo.test  ');assert.equal(s.calls[1][2],'Pessoa@Exemplo.test');
  const broken=service({code:'auth/network-request-failed'});for(let i=0;i<2;i++)await assert.rejects(()=>broken.recuperarSenha('pessoa@exemplo.test'),e=>e.code==='auth/network-request-failed');assert.equal(broken.calls.filter(c=>c[0]==='enviar').length,2);
+});
+
+test('Perfil usa currentUser.email da conta atual, trim e pt; não aceita email da tela',async()=>{
+ const s=service();await s.recuperarSenhaDaConta('atual');
+ assert.deepEqual(s.calls,[['idioma',s.auth,'pt'],['enviar',s.auth,'Atual@exemplo.test']]);
+ s.auth.currentUser={uid:'B',email:'b@exemplo.test'};await s.recuperarSenhaDaConta('B');
+ assert.equal(s.calls.at(-1)[2],'b@exemplo.test');
+ const antes=s.calls.length;await assert.rejects(()=>s.recuperarSenhaDaConta('atual'),e=>e.code==='auth/reset-session-changed');assert.equal(s.calls.length,antes);
+});
+test('Perfil bloqueia sessão ausente/trocada e email ausente ou inválido sem chamar Firebase',async()=>{
+ for(const user of [null,{uid:'outra',email:'outra@exemplo.test'},{uid:'atual',email:null},{uid:'atual'},{uid:'atual',email:''},{uid:'atual',email:'  '},{uid:'atual',email:'invalido'}]){
+  const s=service();s.auth.currentUser=user;await assert.rejects(()=>s.recuperarSenhaDaConta('atual'));assert.deepEqual(s.calls,[]);
+ }
+ const s=service();await assert.rejects(()=>s.recuperarSenhaDaConta(''));assert.deepEqual(s.calls,[]);
+});
+test('Perfil não suprime user-not-found, offline ou outros erros; fluxo público mantém enumeração protegida',async()=>{
+ for(const code of ['auth/user-not-found','auth/network-request-failed','auth/too-many-requests','auth/internal-error']){
+  const s=service({code});await assert.rejects(()=>s.recuperarSenhaDaConta('atual'),e=>e.code===code);
+  await assert.rejects(()=>s.recuperarSenhaDaConta('atual'),e=>e.code===code);
+  assert.equal(s.calls.filter(c=>c[0]==='enviar').length,2);
+ }
+ await service({code:'auth/user-not-found'}).recuperarSenha('ausente@exemplo.test');
+ assert.equal(utils.mensagemRecuperacaoContaEnviada,'Enviamos as instruções de redefinição de senha para seu e-mail.');
+ assert.notEqual(utils.mensagemRecuperacaoContaEnviada,utils.mensagemRecuperacaoEnviada);
+ assert.equal(utils.mensagemErroRecuperacaoConta({code:'auth/reset-email-unavailable'}),'Não foi possível identificar o e-mail desta conta.');
+ assert.equal(utils.mensagemErroRecuperacaoConta({code:'auth/network-request-failed'}),'Não foi possível enviar o e-mail. Verifique sua conexão e tente novamente.');
+ for(const e of [null,new Error('FirebaseError segredo'),{code:'auth/user-not-found'}, {code:'outro',message:'segredo'}])assert.equal(utils.mensagemErroRecuperacaoConta(e),'Não foi possível enviar as instruções de redefinição. Tente novamente.');
+});
+test('Perfil revalida identidade após idioma; concorrência com fluxo público usa uma trava comum',async()=>{
+ let liberarIdioma,liberarEnvio,sends=0;const auth={currentUser:{uid:'A',email:'a@exemplo.test'}};
+ const s=load('src/services/firebase/session.ts',{
+  '@react-native-firebase/auth':{setLanguageCode:()=>new Promise(r=>liberarIdioma=r),sendPasswordResetEmail:()=>{sends++;return new Promise(r=>liberarEnvio=r);}},
+  '@react-native-firebase/firestore':{},'./auth':{obterAuth:()=>auth},'./firestore':{},'./collections':{},'./converters/onboarding':{},'../../utils/auth':utils,
+ });
+ for(const user of [null,{uid:'B',email:'b@exemplo.test'},{uid:'A',email:'alterado@exemplo.test'}]){
+  auth.currentUser={uid:'A',email:'a@exemplo.test'};const p=s.recuperarSenhaDaConta('A');auth.currentUser=user;liberarIdioma();await assert.rejects(()=>p,e=>e.code==='auth/reset-session-changed');assert.equal(sends,0);
+ }
+ auth.currentUser={uid:'A',email:'a@exemplo.test'};const p=s.recuperarSenhaDaConta('A');
+ await assert.rejects(()=>s.recuperarSenhaDaConta('A'),e=>e.code==='auth/request-in-progress');
+ await assert.rejects(()=>s.recuperarSenha('a@exemplo.test'),e=>e.code==='auth/request-in-progress');
+ liberarIdioma();await new Promise(r=>setImmediate(r));assert.equal(sends,1);liberarEnvio();await p;
 });

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSession } from '../../session/SessionProvider';
-import { recuperarSenha } from '../../services/firebase/session';
-import { mensagemErroRecuperacao, mensagemRecuperacaoEnviada } from '../../utils/auth';
+import { recuperarSenhaDaConta } from '../../services/firebase/session';
+import { mensagemErroRecuperacao, mensagemErroRecuperacaoConta, mensagemRecuperacaoContaEnviada } from '../../utils/auth';
 import { AppScreen } from '../../components/ui/AppScreen';
 import { AppCard } from '../../components/ui/AppCard';
 import { AppButton } from '../../components/ui/AppButton';
@@ -28,11 +28,11 @@ export default function ContaScreen() {
     try {
       if (acao === 'sair') await encerrarSessao();
       else {
-        await recuperarSenha(conta.email);
-        if (ativo.current) feedback(mensagemRecuperacaoEnviada);
+        await recuperarSenhaDaConta(conta.uid);
+        if (ativo.current) feedback(mensagemRecuperacaoContaEnviada);
       }
     } catch (erro) {
-      if (ativo.current) feedback(mensagemErroRecuperacao(erro), 'error');
+      if (ativo.current) feedback(acao === 'senha' ? mensagemErroRecuperacaoConta(erro) : mensagemErroRecuperacao(erro), 'error');
     } finally {
       ocupado.current = false;
       if (ativo.current) { setEnviando(false); setAcao(null); }
@@ -50,7 +50,7 @@ export default function ContaScreen() {
     <Text style={styles.versao}>Versão {obterVersaoApp()}</Text>
     <ConfirmModal visible={acao !== null} busy={enviando} destructive={false}
       title={acao === 'sair' ? 'Sair da conta?' : 'Redefinir senha'}
-      message={acao === 'sair' ? 'Você precisará entrar novamente para acessar seu estabelecimento.' : `Enviaremos um link de redefinição para ${conta.email}.`}
+      message={acao === 'sair' ? 'Você precisará entrar novamente para acessar seu estabelecimento.' : 'Enviaremos um link de redefinição para o e-mail da sua conta.'}
       confirmText={enviando ? 'Aguarde...' : acao === 'sair' ? 'Sair' : 'Enviar'}
       onCancel={() => { if (!ocupado.current) setAcao(null); }} onConfirm={() => { void confirmar(); }} />
   </AppScreen>;

@@ -39,7 +39,7 @@ export async function sair(): Promise<void> {
 }
 
 let redefinicaoEmAndamento = false;
-export async function recuperarSenha(email: string): Promise<void> {
+async function enviarRedefinicaoSenha(email: string, uidEsperado?: string): Promise<void> {
   const erro = validarEmailRecuperacao(email);
   if (erro) throw new Error(erro);
   if (redefinicaoEmAndamento) throw { code: 'auth/request-in-progress' };
@@ -47,14 +47,30 @@ export async function recuperarSenha(email: string): Promise<void> {
   try {
     const auth = obterAuth();
     await setLanguageCode(auth, 'pt');
+    // O idioma é assíncrono: a sessão pode ter mudado enquanto aguardávamos.
+    if (uidEsperado && (auth.currentUser?.uid !== uidEsperado || auth.currentUser.email?.trim() !== email.trim())) {
+      throw { code: 'auth/reset-session-changed' };
+    }
     await sendPasswordResetEmail(auth, email.trim());
   }
+  finally { redefinicaoEmAndamento = false; }
+}
+
+export async function recuperarSenha(email: string): Promise<void> {
+  try { await enviarRedefinicaoSenha(email); }
   catch (e) {
     // Mantém a mesma resposta mesmo em projetos sem proteção de enumeração.
     if (typeof e === 'object' && e !== null && 'code' in e && e.code === 'auth/user-not-found') return;
     throw e;
   }
-  finally { redefinicaoEmAndamento = false; }
+}
+
+export async function recuperarSenhaDaConta(uidEsperado: string): Promise<void> {
+  const user = obterAuth().currentUser;
+  if (!user || !uidEsperado || user.uid !== uidEsperado) throw { code: 'auth/reset-session-changed' };
+  if (!user.email || validarEmailRecuperacao(user.email)) throw { code: 'auth/reset-email-unavailable' };
+  // Não recebe e-mail da tela e não suprime erros exclusivos do fluxo público.
+  await enviarRedefinicaoSenha(user.email, uidEsperado);
 }
 
 export async function carregarPerfil(conta: ContaAutenticada) {
