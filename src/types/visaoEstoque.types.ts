@@ -1,3 +1,8 @@
+/**
+ * Define dados das consultas gerais, cartões de movimentos e contadores da Home.
+ * Depende dos tipos de produto, setor e movimento; conecta serviços, utilitários e telas.
+ */
+
 import type { Produto } from './produto.types';
 import type { Setor } from './setor.types';
 import type { Movimentacao } from './movimentacao.types';

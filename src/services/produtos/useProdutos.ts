@@ -1,3 +1,9 @@
+/**
+ * Mantém os produtos do setor disponíveis enquanto a tela que usa o hook está em foco.
+ * Depende de SessionProvider, produtosService e utils/produtos.
+ * Devolve estado da lista e contexto da sessão para telas de produtos, detalhes e movimentos.
+ */
+
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSession } from '../../session/SessionProvider';
@@ -6,6 +12,10 @@ import { mensagemErroProdutos } from '../../utils/produtos';
 import type { Produto } from '../../types/produto.types';
 
 type EstadoLista = { status: 'loading' } | { status: 'data'; produtos: Produto[] } | { status: 'error'; mensagem: string };
+// Ao ganhar foco, abre a escuta de mudanças do Firestore; ao perder foco, cancela essa escuta.
+// A chave reúne sessão e parâmetros da consulta. Se mudarem, dados antigos já ficam ocultos
+// na renderização, antes da limpeza do efeito. O indicador ativo ignora respostas tardias.
+// Tentar novamente aumenta tentativa e reinicia a consulta; erros são traduzidos para a tela.
 export function useProdutos(setorId: string) {
   const { estado: sessao } = useSession();
   const uid = sessao.status === 'authenticatedReady' ? sessao.conta.uid : '';

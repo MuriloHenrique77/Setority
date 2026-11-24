@@ -1,3 +1,9 @@
+/**
+ * Disponibiliza mensagens temporárias a partir de App para as telas e ações.
+ * Depende de contexto do React, área segura e tema; useFeedback entrega a função de exibição.
+ * A mensagem fica acima das abas e desaparece após cinco segundos ou ao ser fechada.
+ */
+
 import { createContext, useCallback, useContext, useEffect, useState, type PropsWithChildren } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -1,3 +1,9 @@
+/**
+ * Lista os produtos do setor escolhido, separados entre ativos e inativos.
+ * Depende de useProdutos, utils/cicloProduto e ProdutoLifecycleActions.
+ * Permite abrir detalhes, criar ou editar produto; os saldos exibidos vêm da projeção do Firestore.
+ */
+
 import { dadosDeRota } from '../../navigation/dadosDeRota';
 import type { StockScreenProps } from '../../navigation/types';
 import React, { useState } from 'react';

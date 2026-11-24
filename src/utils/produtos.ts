@@ -1,3 +1,9 @@
+/**
+ * Valida cadastro/edição, lê quantidades digitadas e identifica necessidade de reposição.
+ * Depende do tipo Produto; é usado por formulários, conversores, serviços e relatórios.
+ * Devolve dados normalizados, listas ordenadas ou erro, sem fazer gravações.
+ */
+
 import type { Produto } from '../types/produto.types';
 
 export type ContextoProdutos = { uid: string; estabelecimentoId: string };
@@ -29,6 +35,8 @@ export function normalizarNovoProduto(dados: DadosNovoProduto): DadosNovoProduto
   return { ...edicao, quantidadeInicial: dados.quantidadeInicial };
 }
 
+// Formulários passam texto, não número. Aceita somente dígitos após remover espaços das pontas.
+// Recusa fração, notação exponencial, sinal negativo e inteiro acima do limite seguro do JavaScript.
 export function lerQuantidadeFormulario(texto: string, campo: string): number {
   if (!/^\d+$/.test(texto.trim()) || !inteiroEstoque(Number(texto.trim()))) {
     throw new Error(`${campo} deve ser um inteiro não negativo, até 9007199254740991.`);

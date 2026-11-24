@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/screens/conta): reúne a tela de identificação da conta e suas ações de segurança e sessão.
+ * Exibe a conta e o estabelecimento ao tocar no ícone dos headers.
+ * Usa os dados já carregados por SessionProvider, sem nova leitura do Firestore.
+ * Depende de firebase/session e ConfirmModal para redefinição de senha ou logout.
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useSession } from '../../session/SessionProvider';
@@ -22,6 +29,9 @@ export default function ContaScreen() {
   if (estado.status !== 'authenticatedReady') return null;
   const { conta, estabelecimento } = estado;
 
+  // Só executa depois da confirmação no modal e impede envio duplo.
+  // Redefinição usa o UID da sessão, para o serviço conferir a conta e obter seu próprio e-mail.
+  // Logout passa por SessionProvider; ao terminar ou falhar, libera a espera se a tela ainda existir.
   async function confirmar() {
     if (ocupado.current || !acao) return;
     ocupado.current = true; setEnviando(true);

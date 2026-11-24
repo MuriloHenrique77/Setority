@@ -1,3 +1,9 @@
+/**
+ * Prepara os indicadores da Home e associa movimentos globais a produtos e setores.
+ * Depende dos tipos de visão de estoque e dos utilitários de produto e ciclo.
+ * Confere o estabelecimento antes de devolver resultados às telas, sem novas consultas.
+ */
+
 import type { DadosVisaoEstoque, MovimentoGlobal, ResumoHome } from '../types/visaoEstoque.types';
 import { produtoAtivo } from './cicloProduto';
 import { precisaReposicao } from './produtos';
@@ -6,6 +12,8 @@ export function validarVisaoEstoque(estabelecimentoId: string, dados: DadosVisao
   if (!estabelecimentoId || [...dados.produtos, ...dados.setores, ...dados.movimentos]
     .some(item => item.estabelecimentoId !== estabelecimentoId)) throw new Error('Dados fora do estabelecimento atual.');
 }
+// A Home conta o catálogo ativo e compara o saldo projetado com zero e mínimo.
+// Não soma quantidadeInicial de novo nem depende de uma lista limitada de movimentos recentes.
 export function resumirHome(estabelecimentoId: string, dados: DadosVisaoEstoque): ResumoHome {
   validarVisaoEstoque(estabelecimentoId, dados);
   const ativos = dados.produtos.filter(produtoAtivo);
@@ -13,6 +21,8 @@ export function resumirHome(estabelecimentoId: string, dados: DadosVisaoEstoque)
     totalReposicao: ativos.filter(precisaReposicao).length,
     totalZerados: ativos.filter(p => p.estoqueAtual === 0).length };
 }
+// A aba global associa por ID os movimentos aos catálogos já lidos, incluindo inativos.
+// Ordena uma cópia por data e ID; os mapas evitam uma nova consulta para cada cartão.
 export function listarMovimentosGlobais(estabelecimentoId: string, dados: DadosVisaoEstoque): MovimentoGlobal[] {
   validarVisaoEstoque(estabelecimentoId, dados);
   const produtos = new Map(dados.produtos.map(p => [p.id, p]));

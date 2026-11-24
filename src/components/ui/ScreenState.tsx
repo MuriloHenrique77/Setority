@@ -1,3 +1,9 @@
+/**
+ * Apresenta estados de lista vazia, carregamento ou falha em várias telas.
+ * Depende de React Native, tema e AppButton; recebe os textos e a ação de tentar novamente.
+ * Ao tocar em uma ação, o controle retorna à tela ou ao hook responsável pela consulta.
+ */
+
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../../theme';
 import { AppButton } from './AppButton';

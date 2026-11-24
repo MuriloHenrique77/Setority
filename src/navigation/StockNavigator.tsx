@@ -1,3 +1,9 @@
+/**
+ * Organiza a pilha da aba Estoque, começando pela lista de setores.
+ * Depende das telas de screens/setores, dos parâmetros em types e do tema de navegação.
+ * As rotas levam de setor a produto, detalhes, histórico e formulários de movimentação.
+ */
+
 import { createStackNavigator } from '@react-navigation/stack';
 import SetoresScreen from '../screens/setores/SetoresScreen';
 import SetorFormScreen from '../screens/setores/SetorFormScreen';

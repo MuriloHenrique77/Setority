@@ -1,3 +1,8 @@
+/**
+ * Confere a Home sem recentes, ações de ciclo e vendedor opcional no formulário.
+ * Usa node:test, TypeScript e componentes simulados para verificar eventos e estados da interface.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm'),ts=require('typescript');
 const {ambiente}=require('./helpers/produtos-ambiente.cjs');
 const theme={colors:{},spacing:{sm:8,md:12,lg:16},typography:{},touchTarget:ambiente().carregar('src/theme/spacing.ts').touchTarget};

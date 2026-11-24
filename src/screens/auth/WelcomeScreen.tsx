@@ -1,3 +1,9 @@
+/**
+ * Apresenta o Setority na primeira tela do fluxo deslogado.
+ * Depende de AuthNavigator, AppButton, tema e imagem da marca.
+ * Os botões levam a Login ou Cadastro; telas baixas ou fonte ampliada recebem rolagem.
+ */
+
 import type { StackScreenProps } from '@react-navigation/stack';
 import { Image, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';

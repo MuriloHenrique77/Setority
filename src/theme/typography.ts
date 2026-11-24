@@ -1,3 +1,8 @@
+/**
+ * Relaciona os nomes das fontes Inter com os estilos de texto da interface.
+ * Depende das fontes carregadas por App para exibição; telas e componentes usam estes valores.
+ */
+
 export const fonts = {
   regular: 'Inter_400Regular', medium: 'Inter_500Medium', semibold: 'Inter_600SemiBold', bold: 'Inter_700Bold',
 } as const;

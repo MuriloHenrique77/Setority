@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/components/ui): reúne elementos visuais básicos para manter botões, campos, cartões e mensagens consistentes.
+ * Padroniza botões usados nas telas e nos modais.
+ * Depende de Pressable, indicador de espera e tema; bloqueia o toque durante loading.
+ * O comportamento da ação é recebido em onPress, uma função chamada quando há toque.
+ */
+
 import { ActivityIndicator, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from 'react-native';
 import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 type Variant = 'primary' | 'secondary' | 'outline' | 'danger' | 'text';

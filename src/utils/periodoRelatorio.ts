@@ -1,3 +1,9 @@
+/**
+ * Transforma as datas digitadas no intervalo usado pela consulta de relatórios.
+ * Depende de Date e do tipo IntervaloRelatorio; usa o calendário local do dispositivo.
+ * Devolve início incluído e dia seguinte excluído, ou erro para a tela manter o período anterior.
+ */
+
 import type { IntervaloRelatorio } from '../types/relatorio.types';
 
 export function formatarDiaLocal(data: Date): string {
@@ -5,6 +11,8 @@ export function formatarDiaLocal(data: Date): string {
     String(data.getMonth() + 1).padStart(2, '0') + '/' + data.getFullYear();
 }
 
+// Ao aplicar o filtro, lê DD/MM/AAAA e reconfere o calendário para recusar datas como 31/02.
+// Constrói meia-noite no fuso local do dispositivo, sem interpretar o texto como UTC.
 function lerDiaLocal(texto: string, campo: string): Date {
   const partes = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(texto.trim());
   if (!partes) throw new Error(campo + ': use DD/MM/AAAA.');

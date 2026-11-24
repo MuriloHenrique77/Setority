@@ -1,3 +1,9 @@
+/**
+ * Normaliza dados e ordena setores antes de gravação ou exibição.
+ * Depende do tipo Setor; serviços e formulários usam suas validações e mensagens.
+ * Representa também o erro de exclusão bloqueada por produtos ativos ou inativos.
+ */
+
 import type { Setor } from '../types/setor.types';
 
 export type DadosSetor = { nome: string; descricao?: string };

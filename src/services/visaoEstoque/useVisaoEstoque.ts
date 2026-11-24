@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/services/visaoEstoque): reúne consultas compartilhadas pela Home, histórico global e seleção dos atalhos.
+ * Liga as consultas gerais de estoque à sessão e ao foco da tela.
+ * Depende de SessionProvider, visaoEstoqueService e utils/visaoEstoque.
+ * Devolve dados, espera e erro para Home, Movimentações e seleção dos atalhos.
+ */
+
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSession } from '../../session/SessionProvider';
@@ -5,6 +12,10 @@ import type { DadosVisaoEstoque } from '../../types/visaoEstoque.types';
 import { observarVisaoEstoque } from './visaoEstoqueService';
 import { mensagemErroVisaoEstoque } from '../../utils/visaoEstoque';
 type Estado = { status: 'loading' } | { status: 'error'; mensagem: string } | { status: 'data'; dados: DadosVisaoEstoque };
+// Ao ganhar foco, abre a escuta de mudanças do Firestore; ao perder foco, cancela essa escuta.
+// A chave reúne sessão e parâmetros da consulta. Se mudarem, dados antigos já ficam ocultos
+// na renderização, antes da limpeza do efeito. O indicador ativo ignora respostas tardias.
+// Tentar novamente aumenta tentativa e reinicia a consulta; erros são traduzidos para a tela.
 export function useVisaoEstoque(maxMovimentos = 5) {
   const { estado: sessao } = useSession();
   const uid = sessao.status === 'authenticatedReady' ? sessao.conta.uid : '';

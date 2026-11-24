@@ -1,3 +1,9 @@
+/**
+ * Papel da pasta (tests): reúne verificações automatizadas de domínio, interface, sessão e segurança, executadas pelo Node.
+ * Confere validações de acesso, conversão de perfil e decisão de sessão.
+ * Usa node:test, TypeScript e módulos simulados; exercita utils/auth, conversores e resolverSessao.
+ */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

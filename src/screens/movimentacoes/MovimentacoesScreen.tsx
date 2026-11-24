@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/screens/movimentacoes): reúne a consulta global de entradas e saídas e o acesso aos produtos relacionados.
+ * Lista o histórico global ao abrir a aba Movimentações, dos registros mais novos aos antigos.
+ * Depende de useVisaoEstoque, utils/visaoEstoque e MovimentoCard.
+ * Carregar mais amplia a consulta em 50 registros; um cartão pode abrir os detalhes do produto.
+ */
+
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, Text } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';

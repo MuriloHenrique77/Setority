@@ -1,3 +1,8 @@
+/**
+ * Organiza títulos e descrições de seções em formulários e resumos.
+ * Depende de Text, View e tema; apresenta o conteúdo recebido sem acessar serviços.
+ */
+
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../../theme';
 export function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {

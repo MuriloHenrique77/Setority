@@ -1,3 +1,8 @@
+/**
+ * Confere validação e gravação do vendedor opcional, sem alterar os cálculos de estoque.
+ * Usa helpers/produtos-ambiente e utilitários para testar criação, edição e relatórios.
+ */
+
 const test=require('node:test'), assert=require('node:assert/strict');
 const {ambiente,contexto}=require('./helpers/produtos-ambiente.cjs');
 const normalizar=ambiente().carregar('src/utils/movimentacoes.ts').normalizarMovimentacao;

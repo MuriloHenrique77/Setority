@@ -1,3 +1,8 @@
+/**
+ * Confere se os hooks encerram consultas e escondem dados antigos ao mudar foco ou sessão.
+ * Usa node:test e simulações de React/navegação para controlar renderização e efeitos separadamente.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
 // Render/efeitos separados para testar a janela anterior ao cleanup da navegação.
 function harness(file,hook,service,callbackName,field,params) {

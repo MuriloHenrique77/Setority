@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/screens/home): reúne o resumo inicial do estoque e os atalhos para as operações mais usadas.
+ * Mostra o resumo ao entrar na aba Início após a sessão ser validada.
+ * Depende de useVisaoEstoque e utils/visaoEstoque; aqui o limite zero dispensa movimentos.
+ * Os atalhos levam à seleção de setor/produto, e os alertas abrem Relatórios.
+ */
+
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';

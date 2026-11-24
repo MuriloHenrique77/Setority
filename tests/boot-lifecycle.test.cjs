@@ -1,3 +1,8 @@
+/**
+ * Confere a liberação da splash durante a abertura, inclusive com fontes pendentes ou erro.
+ * Usa node:test e simulações dos hooks e módulos de App.tsx; não abre um dispositivo.
+ */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

@@ -1,3 +1,8 @@
+/**
+ * Confere se dadosDeRota remove datas e preserva os dados necessários aos formulários.
+ * Usa node:test, TypeScript e JSON para verificar o objeto antes e depois do transporte pela rota.
+ */
+
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript');
 const m = { exports: {} };

@@ -1,3 +1,8 @@
+/**
+ * Confere se abertura e Conta usam a versão centralizada em app.json.
+ * Usa node:test e leitura/transpilação dos arquivos para verificar versão e composição da BootScreen.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm'),ts=require('typescript');
 function load(file,imports){const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;vm.runInThisContext('(function(require,module,exports){'+code+'\n})')(n=>{if(n in imports)return imports[n];throw Error(n);},m,m.exports);return m.exports;}
 test('release versão tem uma fonte: app.json, sem texto hardcoded na UI',()=>{

@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/services/produtos): reúne leitura por setor, cadastro, edição, inativação e acompanhamento de produtos.
+ * Lê produtos por setor e grava cadastro, edição e mudanças entre ativo/inativo.
+ * Depende de Auth/Firestore, conversor de produto e utils/produtos.
+ * Os hooks recebem atualizações; o cadastro grava produto, entrada inicial e contador juntos.
+ */
+
 import { collection, doc, query, where, onSnapshot, writeBatch, serverTimestamp, increment,
   updateDoc, deleteField, getDocsFromServer, runTransaction, limit } from '@react-native-firebase/firestore';
 import { obterAuth } from '../firebase/auth';
@@ -12,6 +19,9 @@ function validarContexto(contexto: ContextoProdutos) {
   if (obterAuth().currentUser?.uid !== contexto.uid || !contexto.estabelecimentoId) throw new Error('Sessão inválida.');
 }
 
+// useProdutos acompanha somente o estabelecimento e o setor recebidos.
+// Cada atualização confere a sessão, converte os documentos e ordena por nome.
+// A função retornada encerra a escuta quando o hook perde foco ou muda de consulta.
 export function observarProdutos(contexto: ContextoProdutos, setorId: string,
   receber: (produtos: Produto[]) => void, erro: (erro: unknown) => void): () => void {
   validarContexto(contexto);
@@ -26,6 +36,8 @@ export function observarProdutos(contexto: ContextoProdutos, setorId: string,
   }, erro);
 }
 
+// A exclusão de setor procura no servidor apenas um produto vinculado, incluindo inativos.
+// O limite reduz a leitura: encontrar um documento já basta para bloquear a remoção.
 export async function setorPossuiProdutos(contexto: ContextoProdutos, setorId: string): Promise<boolean> {
   validarContexto(contexto);
   const resultado = await getDocsFromServer(query(collection(obterFirestore(), COLLECTIONS.produtos),
@@ -34,6 +46,10 @@ export async function setorPossuiProdutos(contexto: ContextoProdutos, setorId: s
   return !resultado.empty;
 }
 
+// O formulário fornece setor e quantidades já lidas como inteiros; o serviço valida novamente.
+// O batch é um lote que grava tudo ou nada: produto, projeção e incremento do contador do setor.
+// Se a inicial for positiva, inclui a entrada inicial com ID previsível e data do mesmo commit.
+// Se for zero, não cria movimento. As regras de segurança validam o conjunto antes de confirmar.
 export async function criarProduto(contexto: ContextoProdutos, setorId: string, dados: DadosNovoProduto): Promise<void> {
   validarContexto(contexto);
   const normalizado = normalizarNovoProduto(dados);
@@ -61,6 +77,8 @@ export async function criarProduto(contexto: ContextoProdutos, setorId: string, 
   await batch.commit();
 }
 
+// A edição altera apenas nome, descrição e mínimo. Não troca setor, inicial ou saldo.
+// Campos opcionais vazios são removidos com deleteField; a escuta atualiza a tela após a escrita.
 export async function atualizarProduto(contexto: ContextoProdutos, id: string, dados: DadosEdicaoProduto): Promise<void> {
   validarContexto(contexto);
   const normalizado = normalizarEdicaoProduto(dados);
@@ -69,6 +87,9 @@ export async function atualizarProduto(contexto: ContextoProdutos, id: string, d
     atualizadoEm: serverTimestamp() });
 }
 
+// A ação confirmada de inativar/reativar relê o produto em uma transação no servidor.
+// Confere sessão, estabelecimento e estado atual; recusa repetir a mesma transição.
+// Grava apenas status e auditoria de inativação, preservando saldo, histórico e contador do setor.
 async function alterarStatus(contexto: ContextoProdutos, id: string, status: Produto['status']): Promise<void> {
   validarContexto(contexto);
   const db = obterFirestore();

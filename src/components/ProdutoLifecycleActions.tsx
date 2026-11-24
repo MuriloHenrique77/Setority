@@ -1,3 +1,9 @@
+/**
+ * Reúne os botões de inativar/reativar usados na lista e nos detalhes do produto.
+ * Depende de produtosService, utils/cicloProduto, ConfirmModal e FeedbackProvider.
+ * Após confirmação, altera o status no Firestore e deixa os listeners atualizarem as telas.
+ */
+
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import type { Produto } from '../types/produto.types';
@@ -22,6 +28,9 @@ export function ProdutoLifecycleActions({ produto, contexto }: {
     if (lock.current) return;
     setAcao(proxima);
   }
+  // O modal inicia a transição escolhida e a trava impede duas operações simultâneas.
+  // O serviço confirma status/auditoria no servidor. A escuta atualiza a lista sem apagar histórico.
+  // Falhas usam mensagem traduzida; a atualização do estado local só ocorre enquanto o componente existe.
   async function confirmar() {
     if (lock.current || !contexto || !acao) return;
     lock.current = true; setBusy(true);

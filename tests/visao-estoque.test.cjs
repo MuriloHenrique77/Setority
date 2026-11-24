@@ -1,3 +1,8 @@
+/**
+ * Confere indicadores da Home, histórico global e encerramento das consultas.
+ * Usa node:test e módulos simulados para testar utils/visaoEstoque, serviço e hook.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),ts=require('typescript');
 function ambiente(sync=false){

@@ -1,3 +1,9 @@
+/**
+ * Valida movimentos e calcula o efeito de criar, editar ou excluir sobre o saldo.
+ * Depende dos tipos de movimentação e de inteiroEstoque em utils/produtos.
+ * Os serviços usam os resultados em transações; valores inválidos ou saldo negativo geram erro.
+ */
+
 import type { Movimentacao, TipoMovimentacao } from '../types/movimentacao.types';
 import { inteiroEstoque } from './produtos';
 
@@ -9,6 +15,9 @@ export type RegistroMovimentacoes = { quantidadeMovimentacoes: number; movimenta
 const idValido = (valor: unknown): valor is string => typeof valor === 'string' &&
   (/^[a-zA-Z0-9_-]{1,128}$/.test(valor) || /^inicial_[a-zA-Z0-9_-]{1,128}$/.test(valor));
 
+// Formulário, serviço e conversor reutilizam a validação para obter o mesmo formato.
+// Exige inteiro positivo, limita observação e aceita vendedor preenchido apenas em saída.
+// Remove espaços das pontas e omite opcionais vazios, sem escrever no banco.
 export function normalizarMovimentacao(dados: DadosMovimentacao, tipo?: TipoMovimentacao): DadosMovimentacao {
   if (!inteiroEstoque(dados.quantidade) || dados.quantidade === 0) throw new Error('A quantidade deve ser um inteiro maior que zero, até 9007199254740991.');
   const observacao = dados.observacao?.trim();
@@ -32,6 +41,9 @@ export function calcularNovoEstoque(estoque: number, tipo: TipoMovimentacao, qua
   return resultado;
 }
 
+// O serviço lê os campos técnicos que vinculam a alteração do produto à movimentação.
+// No legado sem campos, deriva o registro mínimo da inicial. Nos demais, valida contador e IDs.
+// A lista guarda no máximo seis IDs e pode ser parcial; o histórico completo está na coleção.
 export function lerRegistroMovimentacoes(d: Record<string, unknown>, id: string): RegistroMovimentacoes {
   const inicial = typeof d.quantidadeInicial === 'number' && d.quantidadeInicial > 0 ? [`inicial_${id}`] : [];
   const campos = ['quantidadeMovimentacoes', 'movimentacaoIds', 'ultimaMovimentacaoId'];
@@ -67,7 +79,8 @@ export function mensagemErroMovimentacao(erro: unknown, alteracao = false): stri
   return erro instanceof Error && !codigo ? erro.message : (alteracao ? 'Não foi possível alterar a movimentação. Tente novamente.' : 'Não foi possível registrar a movimentação. Tente novamente.');
 }
 
-/** Substitui a contribuição antiga; nunca soma a antiga e a nova simultaneamente. */
+// Ao editar, substitui a contribuição antiga; nunca soma a antiga e a nova simultaneamente.
+// Entrada usa nova - antiga; saída usa antiga - nova. Recusa saldo negativo ou inteiro inseguro.
 export function calcularEstoqueEdicao(estoque: number, tipo: TipoMovimentacao, antiga: number, nova: number): number {
   normalizarMovimentacao({ quantidade: antiga }); normalizarMovimentacao({ quantidade: nova });
   if (!inteiroEstoque(estoque) || !['entrada', 'saida'].includes(tipo)) throw new Error('Dados de estoque inválidos.');
@@ -76,6 +89,8 @@ export function calcularEstoqueEdicao(estoque: number, tipo: TipoMovimentacao, a
   if (!inteiroEstoque(saldo)) throw new Error('O estoque resultante excede o limite de inteiros seguros.');
   return saldo;
 }
+// Excluir inverte o efeito: retirar entrada diminui saldo; retirar saída devolve quantidade.
+// Reutiliza o cálculo de saldo para impedir resultado negativo ou acima do limite seguro.
 export function calcularEstoqueExclusao(estoque: number, tipo: TipoMovimentacao, quantidade: number): number {
   normalizarMovimentacao({ quantidade });
   if (tipo === 'entrada' && estoque < quantidade) throw new Error('Não é possível excluir esta entrada porque o estoque ficaria negativo.');

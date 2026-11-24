@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/screens/setores): reúne o caminho de setor a produto, seus formulários e o histórico de movimentações.
+ * Registra uma entrada/saída ou edita uma movimentação aberta pelos detalhes do produto.
+ * Depende de useProdutos, SessionProvider, utils/movimentacoes e movimentacoesService.
+ * Depois da confirmação do serviço, volta à tela anterior; as consultas recebem o novo saldo.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput } from 'react-native';
 import type { StockScreenProps } from '../../navigation/types';
@@ -28,6 +35,10 @@ export default function MovimentacaoFormScreen({ route, navigation }: StockScree
   const [salvando, setSalvando] = useState(false);
   const ocupado = useRef(false), ativo = useRef(true);
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
+  // O botão exige produto ativo da sessão e valida quantidade positiva e observação.
+  // Vendedor só é enviado em saída com a opção marcada; desmarcar omite o campo na edição.
+  // Escolhe editar, entrada ou saída e aguarda a transação do serviço antes de voltar.
+  // O serviço relê o saldo no servidor; a quantidade vista na tela não autoriza uma saída sozinha.
   async function salvar() {
     if (ocupado.current || !contexto || !valido) return;
     let dados;

@@ -1,3 +1,8 @@
+/**
+ * Destaca avisos de reposição ou estoque zerado no resumo da Home.
+ * Depende de React Native e tema; combina texto e cor conforme os dados recebidos.
+ */
+
 import { StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing, typography } from '../../theme';
 export function StatusBadge({ label, tone }: { label: string; tone: 'warning' | 'danger' }) {

@@ -1,3 +1,8 @@
+/**
+ * Confere a rolagem até um novo erro nos formulários sem deslocar a tela a cada edição.
+ * Usa node:test e simula AuthFormLayout e os efeitos do React para observar scrollTo.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript');
 test('formulário revela um novo erro por rolagem e não desloca conteúdo ao continuar editando',()=>{
  const calls=[],pending=[];let previous;const ref={current:{scrollTo:options=>calls.push(options)}};

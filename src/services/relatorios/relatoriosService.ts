@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/services/relatorios): reúne as consultas por estabelecimento e período e seu acompanhamento pelas telas.
+ * Reúne os dados lidos do Firestore quando o relatório está em foco.
+ * Depende de Auth, collections, conversores e validação de período.
+ * Entrega produtos, setores e movimentos a useRelatorios; utils/relatorios calcula os resultados.
+ */
+
 import { collection, query, where, orderBy, onSnapshot } from '@react-native-firebase/firestore';
 import { obterAuth } from '../firebase/auth';
 import { obterFirestore } from '../firebase/firestore';
@@ -9,7 +16,10 @@ import type { ContextoProdutos } from '../../utils/produtos';
 import type { DadosRelatorio, IntervaloRelatorio } from '../../types/relatorio.types';
 import { validarIntervaloRelatorio } from '../../utils/periodoRelatorio';
 
-/** Três consultas fixas, nenhuma leitura por linha do relatório. Somente leitura. */
+// O hook abre três escutas: catálogo de produtos, setores e movimentos do período.
+// Publica somente depois de receber as três, sem buscar documento por linha do relatório.
+// Cache ou escrita pendente em qualquer parte sinaliza emCache. Uma falha cancela todas;
+// parar pode ser chamado mais de uma vez e respostas após o encerramento são ignoradas.
 export function observarRelatorio(c: ContextoProdutos, periodo: IntervaloRelatorio,
   receber: (dados: DadosRelatorio) => void, erro: (erro: unknown) => void): () => void {
   function validarSessao() {

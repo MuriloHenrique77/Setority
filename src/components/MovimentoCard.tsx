@@ -1,3 +1,9 @@
+/**
+ * Exibe uma movimentação na lista global com quantidade, data e vínculos disponíveis.
+ * Depende de formatarRelatorio, AppCard, VendedorLinha e tema.
+ * Recebe dados prontos; quando há ação de abertura, devolve o toque à tela da lista.
+ */
+
 import { memo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

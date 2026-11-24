@@ -1,3 +1,9 @@
+/**
+ * Calcula os resultados depois que a tela recebe dados e aplica filtros.
+ * Depende dos tipos de relatório e dos utilitários de período, movimentos, produtos e ciclo.
+ * Devolve totais, rankings e alertas sem escrever no Firestore ou modificar os documentos recebidos.
+ */
+
 import type { Produto } from '../types/produto.types';
 import type { DadosRelatorio, FiltrosRelatorio, ProdutoMovimentacaoTotal, ResultadoRelatorio, TotalSetor } from '../types/relatorio.types';
 import { ordenarMovimentacoes } from './movimentacoes';
@@ -12,6 +18,11 @@ function somar(a: number, b: number): number {
 }
 const ordenarProduto = (a: Produto, b: Produto) => a.nome.localeCompare(b.nome, 'pt-BR') || a.id.localeCompare(b.id);
 
+// A tela chama com os dados do hook e filtros. Primeiro valida período e estabelecimento.
+// Seleciona movimentos, soma por produto/setor e ordena rankings por quantidade decrescente.
+// Inativos participam dos totais históricos; reposição, zerados e sem movimento usam só ativos.
+// Saldo do período é entradas menos saídas filtradas, diferente da projeção atual do produto.
+// Quantidade inválida ou soma fora do limite seguro gera erro, sem modificar os dados recebidos.
 export function agregarRelatorio(estabelecimentoId: string, dados: DadosRelatorio, filtro: FiltrosRelatorio): ResultadoRelatorio {
   validarIntervaloRelatorio(filtro);
   // Defesa adicional; isolamento principal já ocorre nas três consultas ao servidor.

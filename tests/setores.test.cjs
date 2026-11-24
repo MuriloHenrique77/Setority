@@ -1,3 +1,8 @@
+/**
+ * Confere normalização, ordenação e conversão de setores com dados válidos ou inconsistentes.
+ * Usa node:test, TypeScript e Timestamp simulado para testar utilitários e conversor.
+ */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

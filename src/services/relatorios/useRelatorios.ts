@@ -1,3 +1,9 @@
+/**
+ * Mantém os dados do período enquanto a tela de relatórios está em foco.
+ * Depende de SessionProvider, relatoriosService e utils/relatorios.
+ * Devolve dados ou falha para RelatoriosScreen, que aplica os demais filtros e cálculos.
+ */
+
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSession } from '../../session/SessionProvider';
@@ -6,6 +12,10 @@ import { observarRelatorio } from './relatoriosService';
 import { mensagemErroRelatorio } from '../../utils/relatorios';
 
 type EstadoRelatorio = { status: 'loading' } | { status: 'error'; mensagem: string } | { status: 'data'; dados: DadosRelatorio };
+// Ao ganhar foco, abre a escuta de mudanças do Firestore; ao perder foco, cancela essa escuta.
+// A chave reúne sessão e parâmetros da consulta. Se mudarem, dados antigos já ficam ocultos
+// na renderização, antes da limpeza do efeito. O indicador ativo ignora respostas tardias.
+// Tentar novamente aumenta tentativa e reinicia a consulta; erros são traduzidos para a tela.
 export function useRelatorios(periodo: IntervaloRelatorio) {
   const { estado: sessao } = useSession();
   const uid = sessao.status === 'authenticatedReady' ? sessao.conta.uid : '';

@@ -1,3 +1,8 @@
+/**
+ * Confere o saldo após sequências de movimentos e a independência do campo vendedor.
+ * Usa helpers/produtos-ambiente e utils/relatorios; compara a projeção com o histórico simulado.
+ */
+
 const test = require('node:test'), assert = require('node:assert/strict');
 const { ambiente, contexto } = require('./helpers/produtos-ambiente.cjs');
 

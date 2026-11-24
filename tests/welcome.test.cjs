@@ -1,3 +1,8 @@
+/**
+ * Confere as ações e a rolagem da tela inicial e a escolha dos fluxos de navegação.
+ * Usa node:test e módulos simulados de WelcomeScreen, RootNavigator e AuthNavigator.
+ */
+
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm'), ts = require('typescript');
 const jsx = { jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) };

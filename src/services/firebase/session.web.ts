@@ -1,3 +1,9 @@
+/**
+ * Substitui session.ts quando o Expo resolve a versão web do módulo.
+ * Depende apenas dos tipos do domínio; não carrega o SDK nativo nem autentica.
+ * Informa indisponibilidade às telas e mantém o fluxo sem acesso aos dados do estoque.
+ */
+
 import type { ContaAutenticada } from '../../types/session.types';
 import type { Usuario } from '../../types/usuario.types';
 import type { Estabelecimento } from '../../types/estabelecimento.types';

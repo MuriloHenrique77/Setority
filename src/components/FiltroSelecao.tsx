@@ -1,3 +1,9 @@
+/**
+ * Abre a seleção pesquisável de setor ou produto nos relatórios.
+ * Depende de Modal, FlatList e tema; filtra apenas as opções recebidas da tela.
+ * Ao escolher, devolve o ID ou undefined para todos, sem gravar dados no Firestore.
+ */
+
 import React, { useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Platform, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

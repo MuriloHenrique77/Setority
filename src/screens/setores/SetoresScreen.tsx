@@ -1,3 +1,9 @@
+/**
+ * É a entrada da aba Estoque: lista setores e oferece cadastro, edição e exclusão confirmada.
+ * Depende de useSetores, setoresService, ConfirmModal e styles/setoresScreen.styles.
+ * Abrir um setor leva a ProdutosScreen; excluir só conclui se não houver produtos vinculados.
+ */
+
 import { dadosDeRota } from '../../navigation/dadosDeRota';
 import type { StockScreenProps } from '../../navigation/types';
 import React, { useEffect, useRef, useState } from 'react';
@@ -46,6 +52,9 @@ export default function SetoresScreen({ navigation }: StockScreenProps<'Setores'
     setModalVisible(true);
   }
 
+  // O modal chama esta função depois da escolha do setor, sem excluir ao primeiro toque.
+  // O serviço verifica produtos e contador no servidor; a tela aguarda e informa bloqueio ou erro.
+  // Ao finalizar, fecha a confirmação e libera a trava sem alterar a lista manualmente.
   async function confirmarExclusao() {
     if (!setorParaExcluir || !contexto || ocupado.current) return;
     ocupado.current = true;
