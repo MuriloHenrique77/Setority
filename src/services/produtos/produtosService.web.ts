@@ -1,3 +1,9 @@
+/**
+ * Substitui produtosService.ts na versão web durante o desenvolvimento.
+ * Depende dos contratos de tipos usados pelo serviço, sem importar o SDK nativo.
+ * Devolve indisponibilidade ao chamador; não consulta nem modifica dados no Firestore.
+ */
+
 import type { ContextoProdutos, DadosNovoProduto, DadosEdicaoProduto } from '../../utils/produtos';
 import type { Produto } from '../../types/produto.types';
 function indisponivel() { return Object.assign(new Error('Produtos no Firestore estão disponíveis no aplicativo Android.'), { code: 'app/web-unavailable' }); }

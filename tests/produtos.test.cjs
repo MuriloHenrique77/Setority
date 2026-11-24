@@ -1,3 +1,8 @@
+/**
+ * Confere criação com estoque inicial, alterações e integridade dos vínculos do estoque.
+ * Usa node:test e Firestore simulado; verifica serviços, conversores e utilitários sem acessar a nuvem.
+ */
+
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {ambiente,contexto}=require('./helpers/produtos-ambiente.cjs');

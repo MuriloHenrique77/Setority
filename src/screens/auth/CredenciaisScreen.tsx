@@ -1,3 +1,9 @@
+/**
+ * Reúne os campos e o envio usados por LoginScreen e CadastroScreen.
+ * Depende de utils/auth, firebase/session e dos componentes de interface.
+ * O Firebase Auth avisa SessionProvider sobre o acesso; RootNavigator faz a transição.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import { AppScreen } from '../../components/ui/AppScreen';
@@ -21,6 +27,9 @@ export default function CredenciaisScreen({ cadastro, alternar, recuperar }: { c
   const ativo = useRef(true);
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
 
+  // O botão valida os campos locais e impede dois envios antes de chamar cadastrar ou entrar.
+  // O resultado do Auth muda a sessão; a tela não navega manualmente para o estoque.
+  // Falhas viram texto de erro. O indicador ativo evita atualizar uma tela que já foi desmontada.
   async function enviar() {
     if (ocupado.current || !firebaseNativoDisponivel) return;
     const validacao = cadastro ? validarCadastro(email, senha, confirmacao) : validarCredenciais(email, senha);

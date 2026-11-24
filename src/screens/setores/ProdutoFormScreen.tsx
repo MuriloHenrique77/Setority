@@ -1,3 +1,9 @@
+/**
+ * Cadastra um produto no setor recebido ou edita seus dados descritivos.
+ * Depende de SessionProvider, utils/produtos e produtosService.
+ * Na criação, o serviço cuida do estoque inicial; após salvar, retorna à tela anterior.
+ */
+
 import type { StockScreenProps } from '../../navigation/types';
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput } from 'react-native';
@@ -25,6 +31,10 @@ export default function ProdutoFormScreen({ navigation, route }: StockScreenProp
   const ativo = useRef(true);
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
 
+  // O botão valida textos e mínimo opcional; valida a inicial inteira somente no cadastro.
+  // A edição não aceita mudar a inicial; o serviço preserva o saldo e os vínculos.
+  // Na criação, o serviço prepara a entrada inicial no mesmo lote do produto.
+  // Só volta após confirmação; falhas ficam visíveis para correção ou nova tentativa.
   async function salvar() {
     if (ocupado.current || !contexto || !valido) return;
     let dados;

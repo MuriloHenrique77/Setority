@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (raiz): reúne a entrada do Expo, a montagem da aplicação e as configurações do projeto.
+ * Monta a base do aplicativo na abertura: fontes, área segura e mensagens globais.
+ * Depende de BootScreen, SessionProvider e do tema. Com as fontes prontas,
+ * entrega a escolha das telas ao RootNavigator dentro do NavigationContainer.
+ */
+
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import RootNavigator from './src/navigation/RootNavigator';
@@ -22,6 +29,8 @@ void SplashScreen.preventAutoHideAsync().catch(() => {
 export default function App() {
   const [fontesCarregadas, erroFonte] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   const splashLiberada = useRef(false);
+  // O primeiro layout da raiz esconde a splash, a imagem de abertura controlada pelo sistema.
+  // A referência evita pedidos repetidos; se o SDK falhar, outro layout pode tentar novamente.
   const ocultarSplashNativa = useCallback(() => {
     if (splashLiberada.current) return;
     splashLiberada.current = true;

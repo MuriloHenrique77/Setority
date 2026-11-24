@@ -1,3 +1,9 @@
+/**
+ * Define como reconhecer um produto ativo e explicar sua inativação.
+ * Depende do tipo Produto; é usado por serviços, listas, ações de ciclo e relatórios.
+ * Produto antigo sem status conta como ativo; a validação impede movimentar um inativo.
+ */
+
 import type { Produto } from '../types/produto.types';
 
 export function produtoAtivo(produto: { status?: string }): boolean { return produto.status === undefined || produto.status === 'ativo'; }

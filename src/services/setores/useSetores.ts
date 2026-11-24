@@ -1,3 +1,9 @@
+/**
+ * Liga a lista de setores à sessão enquanto a tela está em foco.
+ * Depende de SessionProvider, setoresService e utils/setores.
+ * É um hook: uma função que reúne estado e efeitos do React para devolver dados, erro ou espera.
+ */
+
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { useSession } from '../../session/SessionProvider';
@@ -6,6 +12,10 @@ import { mensagemErroSetores } from '../../utils/setores';
 import type { Setor } from '../../types/setor.types';
 
 type EstadoLista = { status: 'loading' } | { status: 'data'; setores: Setor[] } | { status: 'error'; mensagem: string };
+// Ao ganhar foco, abre a escuta de mudanças do Firestore; ao perder foco, cancela essa escuta.
+// A chave reúne sessão e parâmetros da consulta. Se mudarem, dados antigos já ficam ocultos
+// na renderização, antes da limpeza do efeito. O indicador ativo ignora respostas tardias.
+// Tentar novamente aumenta tentativa e reinicia a consulta; erros são traduzidos para a tela.
 export function useSetores() {
   const { estado: sessao } = useSession();
   const uid = sessao.status === 'authenticatedReady' ? sessao.conta.uid : '';

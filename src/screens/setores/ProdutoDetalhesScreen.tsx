@@ -1,3 +1,9 @@
+/**
+ * Exibe um produto e todo o seu histórico ao abrir os detalhes pelo estoque ou relatório.
+ * Depende de useProdutos, useMovimentacoesProduto e das ações de movimentação e inativação.
+ * Uma única FlatList rola cabeçalho e histórico; as ações abrem formulários ou confirmação.
+ */
+
 import { dadosDeRota } from '../../navigation/dadosDeRota';
 import React, { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, View } from 'react-native';
@@ -46,6 +52,9 @@ export default function ProdutoDetalhesScreen({ route, navigation }: StockScreen
   const lista = useRef<FlatList<Movimentacao>>(null);
   const ocupado = useRef(false), ativo = useRef(true);
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
+  // O modal confirma o movimento escolhido; a tela exige produto ativo e trava novas tentativas.
+  // O serviço desfaz o efeito no saldo e pode recusar excluir uma entrada que causaria saldo negativo.
+  // Após erro, rola ao topo para mostrar a mensagem; a escuta atualiza o histórico após sucesso.
   async function excluirRegistro() {
     if (ocupado.current || !contexto || !produto || !produtoAtivo(produto) || !movimentoExcluir) return;
     ocupado.current = true; setExcluindo(true); setErro(null);

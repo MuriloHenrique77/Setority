@@ -1,3 +1,9 @@
+/**
+ * Solicita instruções por e-mail quando o usuário acessa a recuperação pelo Login.
+ * Depende de firebase/session, utils/auth e dos componentes de interface.
+ * Após o envio, apresenta resposta genérica e permite retornar ao Login.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, StyleSheet, Text, View } from 'react-native';
 import type { StackScreenProps } from '@react-navigation/stack';
@@ -18,6 +24,9 @@ export default function RecuperarSenhaScreen({ navigation }: StackScreenProps<Au
   const ocupado = useRef(false), ativo = useRef(true);
   const feedback = useFeedback();
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
+  // O envio valida o e-mail e bloqueia repetição enquanto aguarda o Firebase Auth.
+  // Sucesso só aparece após o serviço resolver e usa mensagem que não revela se a conta existe.
+  // Se falhar, libera nova tentativa; se a tela fechar, ignora o retorno para a interface.
   async function enviar() {
     if (ocupado.current || enviado || !firebaseNativoDisponivel) return;
     const validacao = validarEmailRecuperacao(email);

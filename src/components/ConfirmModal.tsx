@@ -1,3 +1,9 @@
+/**
+ * Pede confirmação antes de uma ação como excluir, inativar ou sair da conta.
+ * Depende do Modal do React Native, de AppButton e do tema.
+ * Só comunica confirmar/cancelar à tela; quem o chama executa o serviço e controla a espera.
+ */
+
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { colors, radii, spacing, typography } from '../theme';
 import { AppButton } from './ui/AppButton';

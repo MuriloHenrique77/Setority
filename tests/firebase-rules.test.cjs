@@ -1,3 +1,9 @@
+/**
+ * Verifica permissões e operações reais contra emuladores locais de Auth e Firestore.
+ * Depende de firebase.json, firestore.rules e dos endereços de emulador nas variáveis do processo.
+ * As requisições usam projeto demo; respostas autorizadas ou negadas são comparadas ao esperado.
+ */
+
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const { test } = require('node:test');
@@ -12,6 +18,8 @@ const database = `projects/${projectId}/databases/(default)`;
 const root = `http://${firestoreHost}/v1/${database}/documents`;
 const string = (value) => ({ stringValue: value });
 
+// Os cenários enviam operações pela API REST dos emuladores para exercitar as Rules.
+// Retorna status e corpo para comparar acesso permitido, negado e efeitos nos documentos.
 async function request(method, path, token, body) {
   const response = await fetch(`${root}${path}`, {
     method,
@@ -24,6 +32,8 @@ async function request(method, path, token, body) {
   return { status: response.status, data: await response.json() };
 }
 
+// Cria uma identidade de teste no Auth Emulator e recebe o token usado nas chamadas ao Firestore.
+// O e-mail aleatório separa os cenários; nenhuma conta do projeto real é criada.
 async function signup() {
   const email = `rules-${randomUUID()}@example.test`;
   const response = await fetch(
@@ -40,6 +50,8 @@ async function signup() {
   return { uid, email, token };
 }
 
+// Prepara as duas escritas de primeiro acesso para o mesmo commit REST.
+// REQUEST_TIME pede a hora do servidor, usada pelas regras para conferir a criação conjunta.
 function onboarding(user, id = randomUUID()) {
   return [
     {

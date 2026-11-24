@@ -1,3 +1,9 @@
+/**
+ * Adapta as cores e fontes do aplicativo aos navegadores e headers.
+ * Depende de colors, typography e do tema padrão do React Navigation.
+ * App e navegadores usam estas opções ao montar as telas.
+ */
+
 import { DefaultTheme, type Theme } from '@react-navigation/native';
 import { colors } from './colors';
 import { fonts, typography } from './typography';

@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/navigation): define os caminhos entre telas e separa acesso público, configuração inicial e área autenticada.
+ * Monta as quatro abas depois que RootNavigator libera o acesso ao estabelecimento.
+ * Depende das telas principais, StockNavigator, AccountButton e theme/navigation.
+ * Estoque abre sua própria pilha; o botão de conta abre a tela Conta no navegador raiz.
+ */
+
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from 'react-native';

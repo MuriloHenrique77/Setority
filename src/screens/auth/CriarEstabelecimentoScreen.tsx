@@ -1,3 +1,9 @@
+/**
+ * Conclui o primeiro acesso de uma conta autenticada que ainda não tem perfil.
+ * Depende de firebase/session, SessionProvider e AuthFormLayout.
+ * Após criar o vínculo no Firestore, relê o perfil para liberar as abas do aplicativo.
+ */
+
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput } from 'react-native';
 import { AuthFormLayout, FormButton, authStyles } from '../../components/AuthFormLayout';
@@ -14,6 +20,9 @@ export default function CriarEstabelecimentoScreen() {
   const ativo = useRef(true);
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
 
+  // Ao confirmar o nome válido, chama o serviço que grava estabelecimento e perfil juntos.
+  // Depois pede atualizarPerfil para a sessão reler o servidor e liberar as abas.
+  // A trava evita duplo toque; falhas mantêm o formulário disponível para tentar novamente.
   async function enviar() {
     if (ocupado.current) return;
     const validacao = validarNomeEstabelecimento(nome);

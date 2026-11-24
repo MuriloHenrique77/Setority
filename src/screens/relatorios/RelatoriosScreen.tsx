@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/screens/relatorios): reúne a apresentação dos filtros, indicadores e resultados das consultas de estoque.
+ * Apresenta totais, rankings e situação do estoque na aba Relatórios.
+ * Depende de useRelatorios, utils/relatorios, periodoRelatorio e FiltroSelecao.
+ * Filtrar só muda a consulta ou o cálculo em memória; os resultados podem abrir o produto.
+ */
+
 import { dadosDeRota } from '../../navigation/dadosDeRota';
 import { produtoAtivo } from '../../utils/cicloProduto';
 import React, { memo, useCallback, useMemo, useState } from 'react';
@@ -58,6 +65,8 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
   const [tipo, setTipo] = useState<TipoMovimentacao>();
   const { estado, estabelecimentoId, tentarNovamente } = useRelatorios(periodo);
   const dados = estado.status === 'data' ? estado.dados : undefined;
+  // Recalcula em memória quando os dados ou filtros mudam. useMemo reaproveita o resultado
+  // enquanto essas entradas forem iguais. A função de agregação não faz gravações no banco.
   const calculo = useMemo(() => {
     if (!dados) return {};
     try { return { resultado: agregarRelatorio(estabelecimentoId, dados, { ...periodo, setorId, produtoId, tipo }) }; }
@@ -74,6 +83,9 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
     }
   }, [navigation, dados, estabelecimentoId]);
   const renderItem = useCallback(({ item }: { item: Linha }) => <LinhaResultado item={item} abrir={abrir} />, [abrir]);
+  // Transforma o cálculo em seções de uma única lista rolável.
+  // Totais/rankings representam o período; reposição e zerados representam o estoque atual ativo.
+  // Sem movimentação considera as duas direções no período, mesmo com filtro de um único tipo.
   const secoes = useMemo<Secao[]>(() => {
     if (!resultado) return [];
     const setorNome = (p: Produto) => resultado.setorPorId.get(p.setorId)?.nome ?? 'Setor indisponível';
@@ -96,6 +108,8 @@ export default function RelatoriosScreen({ navigation }: BottomTabScreenProps<Au
         data: resultado.movimentos.map(registro => ({ tipo: 'movimento', registro, id: 'movimento:' + registro.movimento.id })) },
     ];
   }, [resultado, produtos, produtoId]);
+  // O botão transforma os textos em datas válidas antes de mudar a consulta do hook.
+  // Se houver erro, mantém o período aplicado anteriormente e mostra a explicação.
   function aplicarPeriodo() {
     try { setPeriodo(construirIntervaloRelatorio(inicial, final)); setErroPeriodo(null); }
     catch (e) { setErroPeriodo(mensagemErroRelatorio(e)); }

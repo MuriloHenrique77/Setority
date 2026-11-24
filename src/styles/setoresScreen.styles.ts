@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/styles): guarda estilos de tela separados do código de interação e dos serviços.
+ * Define a aparência da lista, dos cartões e das ações em SetoresScreen.
+ * Depende de StyleSheet do React Native e dos valores centralizados em theme.
+ * Participa da renderização da tela, sem interferir em navegação ou persistência.
+ */
+
 import { StyleSheet } from 'react-native';
 import { colors, spacing, radii, touchTarget, typography } from '../theme';
 

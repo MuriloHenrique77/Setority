@@ -1,3 +1,8 @@
+/**
+ * Confere validação, idioma, proteção de identidade e bloqueio de envios repetidos no reset.
+ * Usa node:test e simulações do serviço firebase/session e da tela de recuperação.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript');
 function load(file,imports={}){
  const m={exports:{}},code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;

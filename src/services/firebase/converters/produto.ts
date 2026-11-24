@@ -1,8 +1,18 @@
+/**
+ * Transforma documentos de produtos nas estruturas usadas pelas telas e cálculos.
+ * Depende de Timestamp, utils/produtos e do registro técnico em utils/movimentacoes.
+ * Valida saldo, vínculos e ciclo de vida; o serviço propaga qualquer inconsistência.
+ */
+
 import { Timestamp } from '@react-native-firebase/firestore';
 import type { Produto } from '../../../types/produto.types';
 import { inteiroEstoque, normalizarNovoProduto } from '../../../utils/produtos';
 import { lerRegistroMovimentacoes } from '../../../utils/movimentacoes';
 
+// Cada leitura valida os campos permitidos, os vínculos, os inteiros e o registro de movimentos.
+// Documentos antigos sem status viram ativos; ausência de possuiHistorico continua ausente.
+// Data nula só recebe estimativa se a escrita estiver pendente. Isso não confirma a gravação.
+// Estado de inativação incoerente lança erro em vez de apresentar um produto aparentemente válido.
 export function converterProduto(dados: unknown, id: string, estabelecimentoId: string, setorId: string,
   pendente = false, dataEstimada = new Date()): Produto {
   if (!dados || typeof dados !== 'object') throw new Error('Produto inválido.');

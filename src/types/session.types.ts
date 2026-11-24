@@ -1,3 +1,8 @@
+/**
+ * Descreve os estados de acesso, da espera até a sessão pronta ou erro.
+ * Depende dos tipos Usuario e Estabelecimento; SessionProvider e RootNavigator usam este contrato.
+ */
+
 import type { Usuario } from './usuario.types';
 import type { Estabelecimento } from './estabelecimento.types';
 

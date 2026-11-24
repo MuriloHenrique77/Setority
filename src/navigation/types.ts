@@ -1,3 +1,9 @@
+/**
+ * Define quais parâmetros cada rota pode receber durante a navegação.
+ * Depende dos tipos de setor, produto e movimentação e dos tipos do React Navigation.
+ * As telas usam esses contratos para abrir outras telas com os dados esperados.
+ */
+
 import type { StackScreenProps } from '@react-navigation/stack';
 import type { Setor } from '../types/setor.types';
 import type { Produto } from '../types/produto.types';

@@ -1,3 +1,8 @@
+/**
+ * Confere inativação, reativação, legado e preservação do histórico e saldo.
+ * Usa o ambiente simulado de helpers/produtos-ambiente e os serviços/utilitários do domínio.
+ */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { ambiente, contexto } = require('./helpers/produtos-ambiente.cjs');

@@ -1,3 +1,9 @@
+/**
+ * Permite sair pelo header durante a configuração inicial do estabelecimento.
+ * Depende de SessionProvider e do tema; o toque chama o encerramento da sessão.
+ * RootNavigator reage ao estado de autenticação e passa ao fluxo deslogado.
+ */
+
 import { Pressable, Text, StyleSheet } from 'react-native';
 import { useSession } from '../session/SessionProvider';
 import { colors, spacing, touchTarget, typography } from '../theme';

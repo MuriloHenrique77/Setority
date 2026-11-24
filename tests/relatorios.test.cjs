@@ -1,3 +1,8 @@
+/**
+ * Confere filtros, datas locais, rankings e controle das consultas de relatórios.
+ * Usa node:test, TypeScript e Firebase/React simulados para testar utilitários, serviço e hook.
+ */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm'), ts = require('typescript');

@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (tests/helpers): reúne apoio compartilhado para simular o banco nos testes sem usar dados reais.
+ * Monta um Firestore em memória para os testes de produtos, movimentos e ciclo de vida.
+ * Depende de TypeScript e vm do Node para carregar os serviços com um SDK simulado.
+ * Os testes recebem documentos, falhas controladas e registros de gravações para suas verificações.
+ */
+
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -5,6 +12,9 @@ const path = require('node:path');
 const vm = require('node:vm');
 const ts = require('typescript');
 class Timestamp { constructor(date) { this.date = new Date(date); } toDate() { return new Date(this.date); } }
+// Cada teste recebe documentos e chamadas isolados em memória.
+// O SDK simulado oferece batches, transações, consultas e falhas de rede/reavaliação controladas.
+// Isso verifica as chamadas dos serviços; a autorização real é testada nos emuladores.
 function ambiente() {
   const docs = new Map();
   const commits = [];
@@ -67,6 +77,8 @@ function ambiente() {
     };
   }
   const cache = new Map();
+  // Transpila o TypeScript para executar no Node e troca os módulos Firebase pelo SDK simulado.
+  // O cache reaproveita módulos dentro deste ambiente, sem carregar o Firebase de produção.
   function carregar(arquivo) {
     arquivo = path.resolve(arquivo);
     if (cache.has(arquivo)) return cache.get(arquivo);

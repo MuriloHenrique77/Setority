@@ -1,3 +1,9 @@
+/**
+ * Reúne setores, produtos e, conforme o limite, movimentos para consultas gerais.
+ * Depende de Auth/Firestore, collections e conversores; não altera o estoque.
+ * Entrega os dados a useVisaoEstoque, usado na Home, histórico global e atalhos.
+ */
+
 import { collection, query, where, orderBy, limit, onSnapshot, type QuerySnapshot } from '@react-native-firebase/firestore';
 import { obterAuth } from '../firebase/auth';
 import { obterFirestore } from '../firebase/firestore';
@@ -8,7 +14,10 @@ import { converterMovimentacao } from '../firebase/converters/movimentacao';
 import type { ContextoProdutos } from '../../utils/produtos';
 import type { DadosVisaoEstoque } from '../../types/visaoEstoque.types';
 
-/** Limite zero: somente produtos e setores; positivo: acrescenta histórico global paginado. */
+// O hook escolhe duas escutas com limite zero, ou três quando também precisa de movimentos.
+// Limite positivo traz os mais recentes; carregar mais amplia o limite e refaz a consulta,
+// sem cursor de paginação. Só publica após reunir todas as partes necessárias.
+// Cache/escrita pendente marca emCache; falha, troca de sessão ou limpeza encerra as escutas.
 export function observarVisaoEstoque(c: ContextoProdutos, maxMovimentos: number,
   receber: (dados: DadosVisaoEstoque) => void, erro: (e: unknown) => void): () => void {
   if (!Number.isSafeInteger(maxMovimentos) || maxMovimentos < 0) throw new Error('Limite inválido.');

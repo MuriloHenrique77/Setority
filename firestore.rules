@@ -1,3 +1,9 @@
+/**
+ * Protege cada leitura e gravação enviada pelos serviços ao Cloud Firestore.
+ * Depende da identidade do Firebase Auth, do perfil em usuarios e dos documentos relacionados.
+ * As regras conferem vínculos e alterações conjuntas; uma recusa volta ao serviço como erro.
+ */
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -66,6 +72,8 @@ service cloud.firestore {
         && validId(data.criadoPor) && data.criadoPor == request.auth.uid;
     }
 
+    // Ao criar perfil/estabelecimento, getAfter lê como cada documento ficará no fim do lote.
+    // Exige que os dois nasçam juntos para a conta atual, sem perfil ou estabelecimento anterior.
     function validNewOnboarding(id) {
       return !hasUserProfile()
         && !exists(establishmentPath(id))
@@ -74,6 +82,8 @@ service cloud.firestore {
         && validEstablishment(getAfter(establishmentPath(id)).data, id);
     }
 
+    // Cada operação de estoque confere autenticação e vínculo no perfil já armazenado.
+    // Informar um estabelecimento no pedido não basta para obter acesso aos seus documentos.
     function belongsToUser(estabelecimentoId) {
       return signedIn() && hasUserProfile()
         && get(userProfilePath()).data.estabelecimentoId == estabelecimentoId;
@@ -158,7 +168,7 @@ service cloud.firestore {
       return data.get('quantidadeProdutos', 0);
     }
 
-    // Etapa 10B: legado sem status é ativo; sem marcador nunca autoriza delete.
+    // Legado sem status é ativo. Exclusão de produto é negada em todos os casos.
     function activeProduct(data) { return data.get('status', 'ativo') == 'ativo'; }
     function validLifecycle(data) {
       return data.get('status', 'ativo') in ['ativo', 'inativo']
@@ -169,6 +179,8 @@ service cloud.firestore {
           ? data.get('inativadoEm', null) == null && data.get('inativadoPor', null) == null
           : data.inativadoEm is timestamp && validId(data.inativadoPor));
     }
+    // Na inativação/reativação, só status, auditoria e atualização podem mudar.
+    // Exige usuário e hora do pedido na inativação; reativar limpa esses campos.
     function validLifecycleChange(before, after) {
       return after.diff(before).affectedKeys().hasOnly(['status', 'inativadoEm', 'inativadoPor', 'atualizadoEm'])
         && ((activeProduct(before) && after.status == 'inativo'
@@ -208,6 +220,8 @@ service cloud.firestore {
         && data.criadoEm is timestamp && data.criadoEm == request.time && data.criadoEm == product.criadoEm;
     }
 
+    // O incremento do contador precisa acompanhar a criação de um produto do mesmo setor.
+    // get lê o estado anterior e getAfter lê o resultado do lote, impedindo aumento isolado.
     function validSectorProductChange(setorId) {
       let id = request.resource.data.ultimaOperacaoProdutoId;
       let path = productPath(id);
@@ -248,6 +262,9 @@ service cloud.firestore {
         && data.criadoEm is timestamp && data.criadoEm == request.time;
     }
 
+    // Na criação manual, o ponteiro ultimaMovimentacaoId liga o produto ao novo movimento.
+    // Confere formato, contador, IDs, marcador de histórico e diferença exata no saldo.
+    // O produto não pode receber um saldo arbitrário separado do registro de entrada/saída.
     function validProductMovementCreate(before, after) {
       let id = after.ultimaMovimentacaoId;
       let path = movementPath(id);
@@ -262,7 +279,7 @@ service cloud.firestore {
     }
 
 
-    // O ponteiro existente identifica a única operação de saldo deste commit.
+    // Movimento e produto precisam compartilhar os três vínculos.
     function movementBelongs(data, product) {
       return data.produtoId == product.id && data.setorId == product.setorId
         && data.estabelecimentoId == product.estabelecimentoId;
@@ -278,6 +295,8 @@ service cloud.firestore {
           && after.observacao.matches('^[^\\s\\p{Z}\\x{FEFF}]([\\s\\S]*[^\\s\\p{Z}\\x{FEFF}])?$')))
         && after.atualizadoEm is timestamp && after.atualizadoEm == request.time;
     }
+    // Na edição de quantidade, compara o movimento antes e depois do mesmo commit.
+    // A projeção deve receber só a diferença entre quantidades; os demais vínculos são preservados.
     function validProductMovementEdit(before, after) {
       let path = movementPath(after.ultimaMovimentacaoId);
       let old = get(path).data;
@@ -286,6 +305,8 @@ service cloud.firestore {
         && movementBelongs(old, before) && old.quantidade != updated.quantidade
         && after.estoqueAtual == before.estoqueAtual + (old.tipo == 'entrada' ? updated.quantidade - old.quantidade : old.quantidade - updated.quantidade);
     }
+    // Na exclusão individual, prova que o movimento desaparece e seu efeito é desfeito no produto.
+    // Também reduz o contador e retira o ID registrado; não remove o marcador de histórico.
     function validProductMovementDelete(before, after) {
       let path = movementPath(after.ultimaMovimentacaoId);
       let old = get(path).data;
@@ -301,6 +322,8 @@ service cloud.firestore {
         || (exists(path) && getAfter(path) != null && validProductMovementEdit(before, after))
         || (exists(path) && getAfter(path) == null && validProductMovementDelete(before, after)));
     }
+    // Edição sem mudança de quantidade conserva o saldo; com mudança, exige atualização vinculada.
+    // Produto inativo bloqueia as duas formas de edição, mesmo que o cliente ignore a interface.
     function movementEditLinked(before, after, id) {
       let path = productPath(before.produtoId);
       let product = get(path).data;
@@ -374,6 +397,8 @@ service cloud.firestore {
       allow delete: if belongsToUser(resource.data.estabelecimentoId) && productCount(resource.data) == 0;
     }
 
+    // Cadastro exige produto, contador do setor e eventual entrada inicial no mesmo lote.
+    // Updates aceitam metadados, ciclo ou movimento validado; delete permanece sempre negado.
     match /produtos/{produtoId} {
       allow get, list: if belongsToUser(resource.data.estabelecimentoId);
       allow create: if belongsToUser(request.resource.data.estabelecimentoId)
@@ -402,6 +427,8 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Cada escrita de movimento exige seu produto e a atualização conjunta correspondente.
+    // A entrada inicial é validada junto da criação do produto; as demais exigem produto ativo.
     match /movimentacoes/{movimentacaoId} {
       allow get, list: if belongsToUser(resource.data.estabelecimentoId);
       allow create: if belongsToUser(request.resource.data.estabelecimentoId)

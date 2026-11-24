@@ -1,8 +1,17 @@
+/**
+ * Transforma um documento de setor no objeto usado por listas e relatórios.
+ * Depende de utils/setores, Timestamp e converters/datas.
+ * Confere campos, estabelecimento e contador técnico antes de devolver o setor ao serviço.
+ */
+
 import { Timestamp } from '@react-native-firebase/firestore';
 import type { Setor } from '../../../types/setor.types';
 import { normalizarDadosSetor } from '../../../utils/setores';
 import { timestampParaDate } from './datas';
 
+// Na leitura, confere formato, vínculo e contador técnico antes de normalizar nome e descrição.
+// Os campos técnicos são validados, mas não entram no objeto de setor usado pelas telas.
+// Timestamp vira Date; uma data inválida confirmada gera erro em vez de ser ocultada.
 export function converterSetor(dados: unknown, id: string, estabelecimentoId: string,
   pendente = false, dataEstimada = new Date()): Setor {
   if (!dados || typeof dados !== 'object') throw new Error('Setor inválido.');

@@ -1,3 +1,9 @@
+/**
+ * Cadastra ou edita um setor quando a lista abre seu formulário.
+ * Depende de SessionProvider, utils/setores, setoresService e AuthFormLayout.
+ * Após o serviço confirmar a gravação, retorna à lista, atualizada pela consulta em tempo real.
+ */
+
 import type { StockScreenProps } from '../../navigation/types';
 import React, { useEffect, useRef, useState } from 'react';
 import { Text, TextInput } from 'react-native';
@@ -22,6 +28,9 @@ export default function SetorFormScreen({ navigation, route }: StockScreenProps<
   useEffect(() => { ativo.current = true; return () => { ativo.current = false; }; }, []);
   const contextoValido = contexto !== null && (!setor || setor.estabelecimentoId === contexto.estabelecimentoId);
 
+  // O botão exige sessão e setor compatíveis e normaliza os textos antes da escrita.
+  // Escolhe criar ou editar; só mostra sucesso e volta após o serviço resolver.
+  // Falhas aparecem no formulário; a trava e o indicador ativo protegem contra repetição e retorno tardio.
   async function handleSalvar() {
     if (ocupado.current || !contexto || !contextoValido) return;
     let dados;

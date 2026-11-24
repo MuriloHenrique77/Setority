@@ -1,8 +1,11 @@
+/**
+ * Registra App como ponto de entrada do Expo ao abrir o aplicativo.
+ * Depende de App.tsx; após o registro, o React monta os componentes da aplicação.
+ */
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
 
-// registerRootComponent calls AppRegistry.registerComponent('main', () => App);
-// It also ensures that whether you load the app in Expo Go or in a native build,
-// the environment is set up appropriately
+// Os módulos Firebase exigem uma build com código nativo; Expo Go não os carrega.
 registerRootComponent(App);

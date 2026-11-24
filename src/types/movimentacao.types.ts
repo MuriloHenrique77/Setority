@@ -1,3 +1,8 @@
+/**
+ * Define o registro do histórico e os campos que podem ser editados.
+ * Não depende de serviços; conversores, cálculos, telas e navegação usam estes contratos.
+ */
+
 export type TipoMovimentacao = 'entrada' | 'saida';
 
 export type Movimentacao = {

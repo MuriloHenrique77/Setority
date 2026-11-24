@@ -1,3 +1,9 @@
+/**
+ * Fornece a estrutura rolável de formulários de estabelecimento, setor, produto e movimento.
+ * Depende de React Native, da altura do header, do tema e de AppButton.
+ * Recebe campos e erros da tela; a ação de salvar continua sendo responsabilidade dela.
+ */
+
 import React, { useEffect, useRef } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useHeaderHeight } from '@react-navigation/elements';
@@ -16,6 +22,8 @@ export const authStyles = StyleSheet.create({
   error: { ...typography.body, color: colors.danger, marginBottom: spacing.lg },
 });
 
+// Ao receber um erro novo, o efeito rola para o topo para revelar a mensagem acima dos campos.
+// A altura do header orienta o desvio do teclado; a ScrollView é a rolagem principal do formulário.
 export function AuthFormLayout({ title, subtitle, erro, children }: React.PropsWithChildren<{
   title: string; subtitle: string; erro?: string | null;
 }>) {

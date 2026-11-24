@@ -1,3 +1,9 @@
+/**
+ * Organiza as telas de boas-vindas, login, cadastro e recuperação para quem está deslogado.
+ * Depende das telas de screens/auth e do Stack, a pilha de telas do React Navigation.
+ * Após autenticar, RootNavigator substitui este fluxo conforme o estado da sessão.
+ */
+
 import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from '../screens/auth/LoginScreen';
 import CadastroScreen from '../screens/auth/CadastroScreen';

@@ -1,3 +1,9 @@
+/**
+ * Escolhe o fluxo visível conforme o estado recebido de SessionProvider.
+ * Depende dos navegadores de autenticação/abas e das telas de espera, conta e onboarding.
+ * Onboarding é a configuração inicial do estabelecimento antes de acessar o estoque.
+ */
+
 import { createStackNavigator } from '@react-navigation/stack';
 import { useSession } from '../session/SessionProvider';
 import AuthNavigator from './AuthNavigator';
@@ -21,6 +27,9 @@ function SessionErrorScreen() {
   </AuthFormLayout>;
 }
 
+// O estado da sessão define quais rotas existem, além de qual tela aparece.
+// A chave inclui conta e estabelecimento na sessão pronta: ao mudar, recria a pilha
+// e descarta telas e parâmetros da sessão anterior.
 export default function RootNavigator() {
   const { estado } = useSession();
   const chave = estado.status === 'authenticatedReady'

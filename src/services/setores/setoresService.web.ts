@@ -1,3 +1,9 @@
+/**
+ * Substitui setoresService.ts na versão web durante o desenvolvimento.
+ * Depende dos contratos de tipos usados pelo serviço, sem importar o SDK nativo.
+ * Devolve indisponibilidade ao chamador; não consulta nem modifica dados no Firestore.
+ */
+
 import type { ContextoSetores, DadosSetor } from '../../utils/setores';
 import type { Setor } from '../../types/setor.types';
 

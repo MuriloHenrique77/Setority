@@ -1,9 +1,17 @@
+/**
+ * Confere o perfil e o estabelecimento lidos durante a resolução da sessão.
+ * Depende de tipos da sessão, usuário e estabelecimento, Timestamp e converters/datas.
+ * Só devolve dados coerentes com a conta; uma falha mantém o acesso bloqueado.
+ */
+
 import type { ContaAutenticada } from '../../../types/session.types';
 import type { Usuario } from '../../../types/usuario.types';
 import type { Estabelecimento } from '../../../types/estabelecimento.types';
 import { Timestamp } from '@react-native-firebase/firestore';
 import { timestampParaDate } from './datas';
 
+// Após a leitura por UID, aceita exatamente ID, e-mail e estabelecimentoId.
+// Confere ID/e-mail com a conta autenticada; um objeto diferente gera erro de perfil.
 export function converterPerfil(dados: unknown, conta: ContaAutenticada): Usuario {
   if (!dados || typeof dados !== 'object') throw new Error('Perfil inválido.');
   const p = dados as Record<string, unknown>;
@@ -12,6 +20,8 @@ export function converterPerfil(dados: unknown, conta: ContaAutenticada): Usuari
   return { id: conta.uid, email: conta.email, estabelecimentoId: p.estabelecimentoId };
 }
 
+// Após ler o vínculo do perfil, exige que este estabelecimento tenha o mesmo ID e criador.
+// O nome precisa estar preenchido e a data deve ser Timestamp confirmado, convertido para Date.
 export function converterEstabelecimento(dados: unknown, id: string, uid: string): Estabelecimento {
   if (!dados || typeof dados !== 'object') throw new Error('Estabelecimento inválido.');
   const e = dados as Record<string, unknown>;

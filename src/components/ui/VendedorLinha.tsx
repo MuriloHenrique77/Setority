@@ -1,3 +1,8 @@
+/**
+ * Exibe o nome opcional de vendedor em histórico, relatório e movimentações globais.
+ * Depende do tipo Movimentacao e do tema; retorna texto apenas em saídas com nome informado.
+ */
+
 import { StyleSheet, Text } from 'react-native';
 import type { Movimentacao } from '../../types/movimentacao.types';
 import { colors, typography } from '../../theme';

@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/utils): reúne validações, cálculos e formatação que podem ser usados sem consultar o banco.
+ * Valida campos de acesso e traduz erros para mensagens compreensíveis.
+ * É chamado por telas de autenticação, conta e serviços de sessão, sem acessar o Firebase.
+ * Devolve erro de validação ou texto seguro para a tela apresentar ao usuário.
+ */
+
 export function validarCredenciais(email: string, senha: string): string | null {
   const erroEmail = validarEmailRecuperacao(email);
   if (erroEmail) return erroEmail;
@@ -52,6 +59,9 @@ export function validarNomeEstabelecimento(nome: string): string | null {
   return null;
 }
 
+// Telas e sessão recebem códigos do SDK e os convertem em mensagens conhecidas.
+// Credenciais inválidas compartilham o mesmo texto. Erros desconhecidos usam mensagem genérica,
+// sem mostrar ao usuário códigos internos ou o conteúdo original da falha.
 export function mensagemErroFirebase(erro: unknown): string {
   const codigo = typeof erro === 'object' && erro !== null && 'code' in erro
     ? String(erro.code) : '';

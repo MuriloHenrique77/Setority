@@ -1,3 +1,9 @@
+/**
+ * Mostra a marca e a espera durante a abertura ou a resolução da sessão.
+ * Depende da imagem oficial, do tema, da área segura e de utils/versaoApp.
+ * App ou RootNavigator substituem esta tela quando o carregamento termina.
+ */
+
 import { ActivityIndicator, Image, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, fonts, spacing, typography } from '../theme';

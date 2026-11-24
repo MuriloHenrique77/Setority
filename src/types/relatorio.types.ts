@@ -1,3 +1,8 @@
+/**
+ * Define o período, filtros, dados lidos e resultados apresentados no relatório.
+ * Depende dos tipos de produto, setor e movimentação; liga serviço, cálculo e tela.
+ */
+
 import type { Produto } from './produto.types';
 import type { Setor } from './setor.types';
 import type { Movimentacao, TipoMovimentacao } from './movimentacao.types';

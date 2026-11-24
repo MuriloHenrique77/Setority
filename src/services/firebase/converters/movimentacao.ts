@@ -1,7 +1,16 @@
+/**
+ * Valida um documento de movimentação antes de entregá-lo ao histórico ou relatório.
+ * Depende de Timestamp, do tipo Movimentacao e de utils/movimentacoes.
+ * Confere campos, vínculos e quantidades; devolve datas Date ou lança erro para o serviço.
+ */
+
 import { Timestamp } from '@react-native-firebase/firestore';
 import type { Movimentacao } from '../../../types/movimentacao.types';
 import { normalizarMovimentacao } from '../../../utils/movimentacoes';
 
+// Na leitura, recusa campos extras e vínculos diferentes da consulta e normaliza os valores.
+// Aceita ausência de ID gravado apenas no documento inicial com nome previsível.
+// Converte datas para Date; data de criação nula só recebe estimativa em escrita pendente.
 export function converterMovimentacao(dados: unknown, id: string, estabelecimentoId: string, produtoId: string,
   setorId: string, pendente = false, estimativa = new Date()): Movimentacao {
   if (!dados || typeof dados !== 'object') throw new Error('Movimentação inválida.');

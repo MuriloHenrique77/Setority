@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src/services/movimentacoes): reúne histórico e alterações de movimentos, mantendo a projeção do saldo consistente.
+ * Consulta o histórico e altera movimentações somente quando o produto está ativo.
+ * Depende de Auth/Firestore, conversores e utils/movimentacoes e cicloProduto.
+ * Cada alteração de quantidade mantém movimento e projeção do saldo na mesma transação.
+ */
+
 import { collection, doc, query, where, onSnapshot, runTransaction, serverTimestamp, deleteField } from '@react-native-firebase/firestore';
 import { obterAuth } from '../firebase/auth';
 import { obterFirestore } from '../firebase/firestore';
@@ -13,6 +20,9 @@ import { validarProdutoAtivo } from '../../utils/cicloProduto';
 function validarContexto(c: ContextoProdutos) {
   if (obterAuth().currentUser?.uid !== c.uid || !c.estabelecimentoId) throw new Error('Sessão inválida.');
 }
+// Os detalhes assinam apenas movimentos do produto e do estabelecimento atuais.
+// O conversor também confere o setor; a ordenação devolve os mais recentes primeiro.
+// O retorno cancela a escuta. Nenhum campo de saldo é somado nesta consulta do histórico.
 export function observarMovimentacoesProduto(c: ContextoProdutos, produtoId: string, setorId: string,
   receber: (movs: Movimentacao[]) => void, erro: (erro: unknown) => void): () => void {
   validarContexto(c);
@@ -27,6 +37,11 @@ export function observarMovimentacoesProduto(c: ContextoProdutos, produtoId: str
     }, erro);
 }
 
+// Entrada/saída validam quantidade e campos opcionais antes de iniciar a transação.
+// A transação relê o produto e confirma as escritas juntas; pode repetir se houver concorrência.
+// Obtém o setor do produto ativo, calcula o saldo e atualiza movimento, projeção e registro técnico.
+// Marca possuiHistorico como true para lembrar que já houve movimento, mesmo após exclusões.
+// Saldo insuficiente, sessão alterada ou servidor indisponível impedem a confirmação.
 async function registrar(c: ContextoProdutos, produtoId: string, setorId: string, tipo: TipoMovimentacao, dados: DadosMovimentacao): Promise<void> {
   validarContexto(c);
   const normalizado = normalizarMovimentacao(dados, tipo);
@@ -54,6 +69,11 @@ async function registrar(c: ContextoProdutos, produtoId: string, setorId: string
 export function registrarEntrada(c: ContextoProdutos, produtoId: string, setorId: string, d: DadosEntrada): Promise<void> { return registrar(c, produtoId, setorId, 'entrada', d); }
 export function registrarSaida(c: ContextoProdutos, produtoId: string, setorId: string, d: DadosMovimentacao): Promise<void> { return registrar(c, produtoId, setorId, 'saida', d); }
 
+// O formulário de edição ou a confirmação de exclusão inicia esta transação online.
+// Relê movimento e produto, confere vínculos e exige produto ativo. Dados presentes significam edição;
+// dados ausentes significam exclusão. O cálculo substitui ou desfaz o efeito antigo uma única vez.
+// Edição só de observação/vendedor não escreve saldo. Excluir não apaga o marcador possuiHistorico.
+// As gravações são conjuntas; saldo negativo, documento ausente ou falha encerram a operação.
 async function alterar(c: ContextoProdutos, produtoId: string, setorId: string, movimentoId: string, dados?: DadosMovimentacao): Promise<void> {
   validarContexto(c);
   const db = obterFirestore(), movimentoRef = doc(db, COLLECTIONS.movimentacoes, movimentoId), produtoRef = doc(db, COLLECTIONS.produtos, produtoId);

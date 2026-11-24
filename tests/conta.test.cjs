@@ -1,3 +1,8 @@
+/**
+ * Confere dados da sessão, confirmação de logout e redefinição de senha na tela Conta.
+ * Usa node:test, transpila a tela e simula hooks/serviços para observar chamadas e mensagens.
+ */
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript');
 function load(file,imports={}){const m={exports:{}};const code=ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;vm.runInThisContext('(function(require,module,exports){'+code+'\n})')(n=>{if(n in imports)return imports[n];throw Error('Import inesperado '+n);},m,m.exports);return m.exports;}
 const utils=load('src/utils/auth.ts');

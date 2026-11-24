@@ -1,3 +1,9 @@
+/**
+ * Envolve telas com área segura, espaço para teclado e rolagem opcional.
+ * Depende de React Native, safe-area-context, altura do header e tema.
+ * Com scroll=false, a lista da tela assume a rolagem vertical principal.
+ */
+
 import type { PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';

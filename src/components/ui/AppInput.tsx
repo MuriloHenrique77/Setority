@@ -1,3 +1,9 @@
+/**
+ * Padroniza campos de texto, rótulos e mensagens de erro dos formulários.
+ * Depende de TextInput e tema; recebe valor e eventos da tela.
+ * A validação permanece com quem usa o campo, que pode devolver um erro para exibição.
+ */
+
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { colors, radii, spacing, touchTarget, typography } from '../../theme';
 export function AppInput({ label, error, style, ...props }: TextInputProps & { label: string; error?: string }) {

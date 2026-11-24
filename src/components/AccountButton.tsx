@@ -1,3 +1,10 @@
+/**
+ * Papel da pasta (src): reúne a implementação do aplicativo, da interface às regras de cálculo e acesso aos dados.
+ * Papel da pasta (src/components): reúne partes reutilizadas por telas, como formulários, confirmações e ações de produto.
+ * Oferece o acesso à conta nos headers das telas autenticadas.
+ * Depende de navigation/types, React Navigation, ícone e tema; ao tocar, abre a rota Conta.
+ */
+
 import { Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, type NavigationProp } from '@react-navigation/native';

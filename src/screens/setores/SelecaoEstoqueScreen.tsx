@@ -1,3 +1,9 @@
+/**
+ * Escolhe o destino de um atalho da Home: setor para cadastro ou produto para movimento.
+ * Depende de useVisaoEstoque, utils/cicloProduto e dadosDeRota.
+ * Filtra nomes em memória e abre ProdutoForm ou MovimentacaoForm somente com o vínculo encontrado.
+ */
+
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { StockScreenProps } from '../../navigation/types';

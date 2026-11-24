@@ -1,3 +1,9 @@
+/**
+ * Executa login, cadastro, recuperação de senha, leitura de perfil e primeiro acesso no mobile.
+ * Depende de Firebase Auth/Firestore nativos, collections, conversores e utils/auth.
+ * SessionProvider observa a conta e lê o vínculo para RootNavigator liberar o estoque.
+ */
+
 import { onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword,
   signOut, validatePassword, sendPasswordResetEmail, setLanguageCode } from '@react-native-firebase/auth';
 import { collection, doc, getDocFromServer, serverTimestamp, writeBatch } from '@react-native-firebase/firestore';
@@ -27,6 +33,8 @@ export async function entrar(email: string, senha: string): Promise<void> {
   await signInWithEmailAndPassword(obterAuth(), email.trim(), senha);
 }
 
+// O formulário de cadastro pede ao Auth a validação da política de senha do projeto.
+// Só então cria a conta. O perfil no Firestore será criado no passo de estabelecimento.
 export async function cadastrar(email: string, senha: string): Promise<void> {
   const auth = obterAuth();
   const validacao = await validatePassword(auth, senha);
@@ -39,6 +47,9 @@ export async function sair(): Promise<void> {
 }
 
 let redefinicaoEmAndamento = false;
+// Login/Conta iniciam o envio; uma trava compartilhada impede duas solicitações simultâneas.
+// Valida o e-mail, solicita português e, no fluxo da Conta, confere novamente a identidade.
+// O Auth envia o link sem alterar o Firestore; finally libera outra tentativa, mesmo após falha.
 async function enviarRedefinicaoSenha(email: string, uidEsperado?: string): Promise<void> {
   const erro = validarEmailRecuperacao(email);
   if (erro) throw new Error(erro);
@@ -73,6 +84,9 @@ export async function recuperarSenhaDaConta(uidEsperado: string): Promise<void> 
   await enviarRedefinicaoSenha(user.email, uidEsperado);
 }
 
+// SessionProvider pede duas leituras confirmadas no servidor: perfil pelo UID e seu estabelecimento.
+// UID é o identificador da conta no Auth. Perfil ausente devolve null para retomar o onboarding.
+// Documentos inválidos ou erro de rede impedem liberar o estoque, inclusive após reiniciar offline.
 export async function carregarPerfil(conta: ContaAutenticada) {
   const db = obterFirestore();
   // Somente estado confirmado pelo servidor pode liberar o fluxo autenticado.
@@ -85,6 +99,10 @@ export async function carregarPerfil(conta: ContaAutenticada) {
   return { perfil, estabelecimento };
 }
 
+// O formulário inicial valida o nome e exige conta autenticada antes de gravar.
+// Primeiro procura um vínculo já confirmado, para recuperar uma tentativa anterior.
+// Um batch é um lote que grava tudo ou nada: estabelecimento e perfil nascem juntos.
+// Após a confirmação, a tela pede a releitura do perfil; uma falha mantém o passo recuperável.
 export async function criarEstabelecimento(nome: string): Promise<void> {
   const erro = validarNomeEstabelecimento(nome);
   if (erro) throw new Error(erro);
